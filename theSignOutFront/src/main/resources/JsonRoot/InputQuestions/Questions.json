@@ -1,0 +1,14 @@
+{
+  "questions": {
+    "name": {
+      "textContent": "Enter your name",
+      "type": "STRING",
+      "required": true
+    },
+    "age": {
+      "textContent": "Enter your age",
+      "type": "INTEGER",
+      "required": true
+    }
+  }
+}
