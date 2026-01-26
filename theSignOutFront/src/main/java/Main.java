@@ -1,10 +1,10 @@
-import CLI.InputConfiguration.JSONParser;
+import CLI.UserInput.RealOutput.Output;
 
 public class Main {
     public static void main(String[] args) {
+        Output outPut = new Output();
         try {
-            JSONParser JSONParser = new JSONParser();
-            CLI.InputConfiguration.JSONParser.parseJSON();
+            outPut.makeOutput();
         } catch (Exception e) {
             e.printStackTrace();
         }

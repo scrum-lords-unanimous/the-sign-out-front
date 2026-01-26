@@ -5,6 +5,36 @@
       "type": "STRING",
       "required": true
     },
+    "name2": {
+      "textContent": "Enter your name",
+      "type": "STRING",
+      "required": true
+    },
+    "name3": {
+      "textContent": "Enter your name",
+      "type": "STRING",
+      "required": true
+    },
+    "name4": {
+      "textContent": "Enter your name",
+      "type": "STRING",
+      "required": true
+    },
+    "name5": {
+      "textContent": "Enter your name",
+      "type": "STRING",
+      "required": true
+    },
+    "name6": {
+      "textContent": "Enter your name",
+      "type": "STRING",
+      "required": true
+    },
+    "name7": {
+      "textContent": "Enter your name",
+      "type": "STRING",
+      "required": true
+    },
     "age": {
       "textContent": "Enter your age",
       "type": "INTEGER",
