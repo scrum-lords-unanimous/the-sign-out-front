@@ -4,12 +4,15 @@ import CLI.InputConfiguration.Questions.Question;
 import CLI.InputConfiguration.JSONParser;
 import CLI.InputConfiguration.Questions.QuestionsConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import CLI.UserInput.RealInput.Input;
 
 import java.util.Map;
 
 import CLI.InputConfiguration.Questions.Question;
 
 public class Output {
+
+    Input input = new Input();
 
     /*
      * Formatting and ANSI Color Vars
@@ -21,10 +24,18 @@ public class Output {
     String smallDividerArt = RED + "===---===" + RESET;
 
 
-    public void makeDivider() {
+    public void makeDividerFirst() {
 
 
         System.out.println("");
+        System.out.println(dividerART);
+        System.out.println("");
+
+    }
+
+    public void makeDividerLast() {
+
+
         System.out.println(dividerART);
         System.out.println("");
 
@@ -47,9 +58,13 @@ public class Output {
             for (Map.Entry<String, Question> entry : questions.entrySet()) {
                 String key = entry.getKey();
                 Question q = entry.getValue();
+
                 count = count + 1;
 
                 questionCopy(count, q);
+
+                input.makeInput(q.getType());
+
             }
         }
 
@@ -63,11 +78,11 @@ public class Output {
     public void makeOutput() throws Exception {
         JSONParser jsonParser = new JSONParser();
 
-        makeDivider();
+        makeDividerFirst();
 
         questionsPrint(jsonParser.parseJSON());
 
-        makeDivider();
+        makeDividerLast();
 
     }
 

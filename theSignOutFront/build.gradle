@@ -3,6 +3,10 @@ plugins {
     id 'application'
 }
 
+run {
+    standardInput = System.in
+}
+
 group 'com.scrum-lords-unanimous'
 version '0.1'
 
