@@ -4,6 +4,11 @@ import java.util.Scanner;
 
 public class Input {
 
+    String RED = "\u001B[1;30;101m";
+    String RESET = "\u001B[0m";
+
+    String nL = "\n";
+
     Scanner scanner = new Scanner(System.in);
 
     public record FunctionResult(String message, int code, boolean success) {
@@ -40,7 +45,7 @@ public class Input {
 
         while(!scanner.hasNextBoolean()) {
 
-            System.out.println("That is not a valid boolean! Fuck you!");
+            System.out.println(nL + RED + "That is not a valid boolean! Please try again." + RESET + nL);
 
             scanner.next();
 
@@ -58,7 +63,7 @@ public class Input {
 
         while(!scanner.hasNextInt()) {
 
-            System.out.println("That is not a valid number! Please try again.");
+            System.out.println(nL + RED + "That is not a valid number! Please try again." + RESET + nL);
 
             scanner.next();
 
@@ -76,7 +81,7 @@ public class Input {
 
         while(!scanner.hasNextFloat()) {
 
-            System.out.println("That is not a valid number! Please try again.");
+            System.out.println(nL + RED + "That is not a valid number! Please try again." + RESET + nL);
 
             scanner.next();
 

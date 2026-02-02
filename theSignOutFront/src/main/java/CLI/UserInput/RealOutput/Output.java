@@ -27,23 +27,20 @@ public class Output {
     public void makeDividerFirst() {
 
 
-        System.out.println("");
         System.out.println(dividerART);
-        System.out.println("");
 
     }
 
     public void makeDividerLast() {
 
 
-        System.out.println(dividerART);
-        System.out.println("");
+        System.out.println("\n" + dividerART);
 
     }
 
     public void questionCopy(int iteration, Question q) {
 
-        System.out.println(smallDividerArt + YELLOW + "{ INPUT #" + iteration + " }" + RESET + smallDividerArt);
+        System.out.println("\n" + smallDividerArt + YELLOW + "{ INPUT #" + iteration + " }" + RESET + smallDividerArt);
         System.out.println("");
         System.out.println(q.getTextContent() + ":");
         System.out.println("");
