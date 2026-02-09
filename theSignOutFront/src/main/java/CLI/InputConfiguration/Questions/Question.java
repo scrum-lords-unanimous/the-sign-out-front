@@ -3,8 +3,11 @@ package CLI.InputConfiguration.Questions;
 public class Question {
 
     private String textContent;
+    private String id;
     private String type;
     private boolean required;
+
+    public String getId() { return id; }
 
     public String getTextContent() {
         return textContent;

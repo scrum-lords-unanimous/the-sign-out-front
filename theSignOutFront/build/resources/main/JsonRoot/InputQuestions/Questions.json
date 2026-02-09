@@ -1,76 +1,91 @@
 {
   "questions": {
     "dayOfTheWeek": {
+      "id": "day-of-week",
       "textContent": "What day would you like to simulate?",
       "type": "STRING",
       "required": true
     },
-    "sumberOfSlides": {
+    "numberOfSlides": {
+      "id": "number-of-slides",
       "textContent": "How many slides would you like to simulate?",
       "type": "INTEGER",
       "required": true
     },
     "startTime": {
+      "id": "start-time",
       "textContent": "What time would you like to start the simulation? (Simulation will run until 23:59:59) FORMAT: HH:MM:SS",
       "type": "STRING",
       "required": true
     },
     "avgSpeed": {
+      "id": "avg-speed",
       "textContent": "What would you assume the average speed a student is driving up the driveway? (MPH)",
       "type": "INTEGER",
       "required": true
     },
     "childsOnCampus": {
+      "id": "childs-on-campus",
       "textContent": "How many students on campus that day?",
       "type": "INTEGER",
       "required": true
     },
     "minHoursOnCampus": {
+      "id": "min-hours-on-campus",
       "textContent": "What is the minimum number of hours a student will spend on campus?",
       "type": "INTEGER",
       "required": true
     },
     "maxHoursOnCampus": {
+      "id": "max-hours-on-campus",
       "textContent": "What is the maximum number of hours a student will spend on campus?",
       "type": "INTEGER",
       "required": true
     },
     "studentsOnWeekends": {
+      "id": "students-on-weekends",
       "textContent": "Will students have classes on weekends?",
       "type": "BOOLEAN",
       "required": true
     },
     "avgSpentDays": {
+      "id": "avg-spent-days",
       "textContent": "What is the average amount of days a student will spend at school? FORMAT: 1-MAX or 7",
       "type": "INTEGER",
       "required": true
     },
     "mostPopulousDays": {
+      "id": "most-populous-days",
       "textContent": "Pick two days most likely for a student to have classes. FORMAT: SUN, MON OPTIONS: SUN, MON, TUE, WED, THU, FRI, SAT",
       "type": "STRING",
       "required": true
     },
     "variationInSchedule": {
+      "id": "variation-in-schedule",
       "textContent": "How many students have a similar schedule? FORMAT: 1-100%",
       "type": "INTEGER",
       "required": true
     },
     "longIsDriveway": {
+      "id": "long-is-driveway",
       "textContent": "How long is the driveway?",
       "type": "INTEGER",
       "required": true
     },
     "avgRadiiOfDriveCurves": {
+      "id": "avg-radii-of-drive-curves",
       "textContent": "What is the average radius of a curve in the driveway?",
       "type": "INTEGER",
       "required": true
     },
     "curvesInDriveway": {
+      "id": "curves-in-driveway",
       "textContent": "How many curves are in the driveway?",
       "type": "INTEGER",
       "required": true
     },
     "rateOfAdvancement": {
+      "id": "rate-of-advancement",
       "textContent": "What rate would you like to simulate? FORMAT: 1-10000x (in seconds per second)",
       "type": "INTEGER",
       "required": true

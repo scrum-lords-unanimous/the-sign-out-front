@@ -36,7 +36,6 @@ public class Input {
 
         String data = scanner.nextLine();
 
-
         return data;
 
     }

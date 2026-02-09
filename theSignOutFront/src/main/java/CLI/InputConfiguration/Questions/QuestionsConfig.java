@@ -13,4 +13,5 @@ public class QuestionsConfig {
     public void setQuestions(Map<String, Question> questions) {
         this.questions = questions;
     }
+
 }

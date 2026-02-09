@@ -1,14 +1,10 @@
 package CLI.UserInput.RealOutput;
 
 import CLI.InputConfiguration.Questions.Question;
-import CLI.InputConfiguration.JSONParser;
-import CLI.InputConfiguration.Questions.QuestionsConfig;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import CLI.InputConfiguration.JsonParser;
 import CLI.UserInput.RealInput.Input;
 
 import java.util.Map;
-
-import CLI.InputConfiguration.Questions.Question;
 
 public class Output {
 
@@ -25,7 +21,6 @@ public class Output {
 
 
     public void makeDividerFirst() {
-
 
         System.out.println(dividerART);
 
@@ -53,6 +48,7 @@ public class Output {
             int count = 0;
 
             for (Map.Entry<String, Question> entry : questions.entrySet()) {
+
                 String key = entry.getKey();
                 Question q = entry.getValue();
 
@@ -73,11 +69,11 @@ public class Output {
     }
 
     public void makeOutput() throws Exception {
-        JSONParser jsonParser = new JSONParser();
+        JsonParser jsonParser = new JsonParser();
 
         makeDividerFirst();
 
-        questionsPrint(jsonParser.parseJSON());
+        questionsPrint(jsonParser.parseQuestionJSON());
 
         makeDividerLast();
 

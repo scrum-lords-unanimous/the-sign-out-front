@@ -1,3 +1,5 @@
+package Data.Student;
+
 import java.time.LocalTime;
 public class Student {
 
@@ -24,7 +26,7 @@ public class Student {
         this.wed = wed;
         this.thur = thur;
         this.fri = fri;
-        this.daysOfWeek = {mon, tues, wed, thur, fri};
+        this.daysOfWeek = new String[]{mon, tues, wed, thur, fri};
         this.arrivalHour = arrivalHour;
         this.arrivalMintues = arrivalMintues;
         this.speed = speed;
