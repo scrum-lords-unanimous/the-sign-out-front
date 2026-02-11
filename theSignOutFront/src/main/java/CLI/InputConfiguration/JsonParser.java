@@ -64,6 +64,18 @@ public class JsonParser {
         }
 
         return operations;
-}
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> parseSimulationJSON() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String resourcePath = "/JsonRoot/Simulation/Simulation.json";
+        try (InputStream inputStream = JsonParser.class.getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new FileNotFoundException("Resource not found in classpath: " + resourcePath);
+            }
+            return mapper.readValue(inputStream, Map.class);
+        }
+    }
 
 }

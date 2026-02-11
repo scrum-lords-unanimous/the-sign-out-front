@@ -84,6 +84,12 @@
       "type": "INTEGER",
       "required": true
     },
+    "howHeavyIsTheCar": {
+      "id": "how-heavy-is-the-car",
+      "textContent": "How heavy is the car?",
+      "type": "INTEGER",
+      "required": true
+    },
     "rateOfAdvancement": {
       "id": "rate-of-advancement",
       "textContent": "What rate would you like to simulate? FORMAT: 1-10000x (in seconds per second)",

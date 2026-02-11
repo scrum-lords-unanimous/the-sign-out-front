@@ -1,0 +1,11 @@
+{
+  "operation": {
+    "safeCurveSpeed": {
+      "id": "safe-curve-speed",
+      "operation": "CENTRIFUGAL",
+      "operAnds": ["avg-speed", "avg-radii-of-drive-curves", "how-heavy-is-the-car"],
+      "preCompute": true,
+      "temp": 15
+    }
+  }
+}

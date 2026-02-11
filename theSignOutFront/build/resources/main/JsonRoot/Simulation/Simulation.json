@@ -1,0 +1,58 @@
+{
+  "steps": [
+    {
+      "type": "spawn",
+      "count": "answers.childs-on-campus",
+      "as": "students"
+    },
+    {
+      "type": "for",
+      "var": "tick",
+      "from": 0,
+      "to": 86400,
+      "steps": [
+        {
+          "type": "for-each",
+          "collection": "students",
+          "as": "student",
+          "steps": [
+            {
+              "type": "if",
+              "condition": {"and": [
+                {"eq": ["student.onDriveway", false]},
+                {"eq": ["student.position", 0]},
+                {"eq": ["tick.hour", "student.arrivalHour"]},
+                {"eq": ["tick.minute", "student.arrivalMinute"]}
+              ]},
+              "then": [
+                {"type": "set", "target": "student.onDriveway", "value": true}
+              ]
+            },
+            {
+              "type": "if",
+              "condition": {"eq": ["student.onDriveway", true]},
+              "then": [
+                {
+                  "type": "set",
+                  "target": "student.position",
+                  "value": {"op": "ADD", "args": [
+                    "student.position",
+                    {"op": "DIVIDE", "args": ["student.props.safe-curve-speed", 3600]}
+                  ]}
+                },
+                {
+                  "type": "if",
+                  "condition": {"gte": ["student.position", "answers.long-is-driveway"]},
+                  "then": [
+                    {"type": "set", "target": "student.onDriveway", "value": false}
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {"type": "print", "value": "Simulation complete"}
+  ]
+}
