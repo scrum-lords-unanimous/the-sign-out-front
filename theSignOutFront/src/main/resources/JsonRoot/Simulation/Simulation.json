@@ -1,5 +1,6 @@
 {
   "steps": [
+    {"type":  "print", "value":  "Simulation Start"},
     {
       "type": "spawn",
       "count": "answers.childs-on-campus",
@@ -11,6 +12,7 @@
       "from": 0,
       "to": 86400,
       "steps": [
+        {"type": "print", "value":  "tick"},
         {
           "type": "for-each",
           "collection": "students",
@@ -19,10 +21,10 @@
             {
               "type": "if",
               "condition": {"and": [
-                {"eq": ["student.onDriveway", false]},
-                {"eq": ["student.position", 0]},
-                {"eq": ["tick.hour", "student.arrivalHour"]},
-                {"eq": ["tick.minute", "student.arrivalMinute"]}
+                {"=": ["student.onDriveway", false]},
+                {"=": ["student.position", 0]},
+                {"=": ["tick.hour", "student.arrivalHour"]},
+                {"=": ["tick.minute", "student.arrivalMinute"]}
               ]},
               "then": [
                 {"type": "set", "target": "student.onDriveway", "value": true}
@@ -30,7 +32,7 @@
             },
             {
               "type": "if",
-              "condition": {"eq": ["student.onDriveway", true]},
+              "condition": {"=": ["student.onDriveway", true]},
               "then": [
                 {
                   "type": "set",
@@ -42,7 +44,7 @@
                 },
                 {
                   "type": "if",
-                  "condition": {"gte": ["student.position", "answers.long-is-driveway"]},
+                  "condition": {"ge": ["student.position", "answers.long-is-driveway"]},
                   "then": [
                     {"type": "set", "target": "student.onDriveway", "value": false}
                   ]
@@ -53,6 +55,6 @@
         }
       ]
     },
-    {"type": "print", "value": "Simulation complete"}
+    {"type": "print", "value": "Simulation complete!"}
   ]
 }

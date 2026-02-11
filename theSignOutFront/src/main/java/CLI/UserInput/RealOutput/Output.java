@@ -104,12 +104,14 @@ public class Output {
 
         System.out.println("\n" + dividerART);
         System.out.println("\n" + smallDividerArt + YELLOW + "{ RESULTS }" + RESET + smallDividerArt);
+        System.out.println("\n");
         Map<String, Double> preComputed = processOperations(answers);
-        makeDividerLast();
 
         Map<String, Operation> operations = JsonParser.parseOperationJSON();
         Map<String, Object> simConfig = JsonParser.parseSimulationJSON();
         Simulation sim = new Simulation();
         sim.theSimulation(answers, preComputed, operations, simConfig);
+        makeDividerLast();
+
     }
 }
