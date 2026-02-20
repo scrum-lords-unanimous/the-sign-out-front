@@ -6,6 +6,9 @@ import CLI.InputConfiguration.Questions.Question;
 import CLI.UserInput.DoMath.MathIsDone;
 import CLI.UserInput.RealInput.Input;
 import Simulation.Simulation;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.File;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -53,7 +56,7 @@ public class Output {
                 Question q = entry.getValue();
                 count++;
                 questionCopy(count, q);
-                Input.FunctionResult result = input.makeInput(q.getType());
+                Input.FunctionResult result = input.makeInput(q.getType(), q.getFormat());
                 switch (q.getType()) {
                     case "STRING" -> answers.put(q.getId(), result.message());
                     case "INTEGER" -> answers.put(q.getId(), result.code());
@@ -96,11 +99,47 @@ public class Output {
         return preComputed;
     }
 
+    private void saveAnswers(Map<String, Object> answers) throws Exception {
+        new ObjectMapper().writeValue(new File("saved-answers.json"), answers);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> loadAnswers() throws Exception {
+        return new ObjectMapper().readValue(new File("saved-answers.json"), Map.class);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> loadDefaultAnswers() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        try (InputStream is = getClass().getResourceAsStream("/JsonRoot/InputQuestions/DefaultAnswers.json")) {
+            return mapper.readValue(is, Map.class);
+        }
+    }
+
     public void makeOutput() throws Exception {
         JsonParser jsonParser = new JsonParser();
+        Map<String, Object> answers;
 
-        makeDividerFirst();
-        Map<String, Object> answers = questionsPrint(jsonParser.parseQuestionJSON());
+        System.out.println("\n1. New simulation\n2. Run saved simulation\n3. Run default simulation\n");
+        String choice = input.stringInfo(null).trim();
+
+        if (choice.equals("2")) {
+            File saved = new File("saved-answers.json");
+            if (saved.exists()) {
+                answers = loadAnswers();
+            } else {
+                System.out.println("No saved simulation found. Running questions.\n");
+                makeDividerFirst();
+                answers = questionsPrint(jsonParser.parseQuestionJSON());
+                saveAnswers(answers);
+            }
+        } else if (choice.equals("3")) {
+            answers = loadDefaultAnswers();
+        } else {
+            makeDividerFirst();
+            answers = questionsPrint(jsonParser.parseQuestionJSON());
+            saveAnswers(answers);
+        }
 
         System.out.println("\n" + dividerART);
         System.out.println("\n" + smallDividerArt + YELLOW + "{ RESULTS }" + RESET + smallDividerArt);

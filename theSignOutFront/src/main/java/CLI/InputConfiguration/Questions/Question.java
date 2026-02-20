@@ -6,6 +6,7 @@ public class Question {
     private String id;
     private String type;
     private boolean required;
+    private String format;
 
     public String getId() { return id; }
 
@@ -21,5 +22,8 @@ public class Question {
         return required;
     }
 
+    public String getFormat() {
+        return format;
+    }
 
 }

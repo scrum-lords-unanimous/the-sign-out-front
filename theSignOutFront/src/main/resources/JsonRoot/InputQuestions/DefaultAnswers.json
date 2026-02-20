@@ -1,0 +1,18 @@
+{
+  "day-of-week": "MON",
+  "number-of-slides": 10,
+  "start-time": "08:00:00",
+  "avg-speed": 40,
+  "childs-on-campus": 100,
+  "min-hours-on-campus": 2,
+  "max-hours-on-campus": 8,
+  "students-on-weekends": false,
+  "avg-spent-days": 5,
+  "most-populous-days": "MON, WED",
+  "variation-in-schedule": 50,
+  "long-is-driveway": 500,
+  "avg-radii-of-drive-curves": 50,
+  "curves-in-driveway": 7,
+  "how-heavy-is-the-car": 3000,
+  "rate-of-advancement": 1
+}

@@ -1,7 +1,11 @@
 package Simulation;
 
+import CLI.InputConfiguration.JsonParser;
 import CLI.InputConfiguration.Operations.Operation;
 import CLI.UserInput.DoMath.MathIsDone;
+import Data.Driveway.Driveway;
+import Data.Slide.Slide;
+import Data.Slide.SlideConfig;
 import Data.Student.Student;
 
 import java.util.*;
@@ -17,11 +21,20 @@ Map<String, Object> vars = new HashMap<>();
 Map<String, Student> currentRefs = new HashMap<>();
 MathIsDone math = new MathIsDone();
 Random rand = new Random();
+Driveway driveway;
+SlideConfig slideConfig;
+Map<String, Integer> slideViews = new LinkedHashMap<>();
 
 public void theSimulation(Map<String, Object> answers, Map<String, Double> preComputed, Map<String, Operation> operations, Map<String, Object> simConfig) {
     this.answers = answers;
     this.preComputed = preComputed;
     this.operations = operations;
+    try {
+	slideConfig = JsonParser.parseSlideJSON();
+	for (Slide s : slideConfig.getSlides()) slideViews.put(s.getId(), 0);
+    } catch (Exception e) {
+	throw new RuntimeException("Failed to load slides", e);
+    }
     executeSteps((List<Map<String, Object>>) simConfig.get("steps"));
 }
 
@@ -39,6 +52,9 @@ private void executeStep(Map<String, Object> step) {
 	case "set" -> executeSet(step);
 	case "print" -> System.out.println(resolve(step.get("value")));
 	case "spawn" -> executeSpawn(step);
+	case "precompute-driveway" -> executePrecomputeDriveway(step);
+	case "record-slide-view" -> executeRecordSlideView();
+	case "slide-report" -> executeSlideReport();
     }
 }
 
@@ -46,8 +62,10 @@ private void executeFor(Map<String, Object> step) {
     String var = (String) step.get("var");
     int from = toInt(resolve(step.get("from")));
     int to = toInt(resolve(step.get("to")));
+    int inc = step.containsKey("step") ? toInt(resolve(step.get("step"))) : 1;
+    if (inc < 1) inc = 1;
     List<Map<String, Object>> steps = (List<Map<String, Object>>) step.get("steps");
-    for (int i = from; i < to; i++) {
+    for (int i = from; i < to; i += inc) {
 	vars.put(var, i);
 	executeSteps(steps);
     }
@@ -112,16 +130,56 @@ private void executeSpawn(Map<String, Object> step) {
     collections.put(as, students);
 }
 
+private void executePrecomputeDriveway(Map<String, Object> step) {
+    try {
+	Map<String, Object> config = JsonParser.parseDrivewayJSON();
+	double length = toDouble(answers.get((String) config.get("length")));
+	int curveCount = toInt(answers.get((String) config.get("curveCount")));
+	double avgRadius = toDouble(answers.get((String) config.get("avgRadius")));
+	double straightSpeed = toDouble(answers.get((String) config.get("straightSpeed")));
+	double carWeight = toDouble(answers.get((String) config.get("carWeight")));
+	driveway = Driveway.build(length, curveCount, avgRadius, straightSpeed, carWeight, math);
+    } catch (Exception e) {
+	throw new RuntimeException("Failed to precompute driveway", e);
+    }
+}
+
+private void executeRecordSlideView() {
+    int tick = toInt(vars.get("tick"));
+    List<Slide> slides = slideConfig.getSlides();
+    if (slides.isEmpty()) return;
+    int idx = (tick / slideConfig.getCycleDuration()) % slides.size();
+    slideViews.merge(slides.get(idx).getId(), 1, Integer::sum);
+}
+
+private void executeSlideReport() {
+    List<Slide> slides = slideConfig.getSlides();
+    Map<String, String> nameMap = new HashMap<>();
+    for (Slide s : slides) nameMap.put(s.getId(), s.getName());
+    List<Map.Entry<String, Integer>> sorted = new ArrayList<>(slideViews.entrySet());
+    sorted.sort((a, b) -> b.getValue() - a.getValue());
+    System.out.println("\n=== SLIDE REPORT ===");
+    for (Map.Entry<String, Integer> e : sorted) {
+	System.out.println(e.getKey() + " (" + nameMap.get(e.getKey()) + ") - " + e.getValue() + " views");
+    }
+    System.out.println("Most viewed: " + sorted.get(0).getKey() + " (" + nameMap.get(sorted.get(0).getKey()) + ")");
+    System.out.println("Least viewed: " + sorted.get(sorted.size() - 1).getKey() + " (" + nameMap.get(sorted.get(sorted.size() - 1).getKey()) + ")");
+}
+
 Object resolve(Object value) {
     if (value == null) return null;
     if (value instanceof Number || value instanceof Boolean) return value;
     if (value instanceof Map map) {
 	if (map.containsKey("op")) {
+	    String op = (String) map.get("op");
 	    List<Object> args = (List<Object>) map.get("args");
+	    if (op.equals("DRIVEWAY_SPEED")) {
+		return driveway.speedAt(toDouble(resolve(args.get(0))));
+	    }
 	    double in1 = !args.isEmpty() ? toDouble(resolve(args.get(0))) : 0;
 	    double in2 = args.size() > 1 ? toDouble(resolve(args.get(1))) : 0;
 	    double in3 = args.size() > 2 ? toDouble(resolve(args.get(2))) : 0;
-	    return math.ComputeOperatives(in1, in2, in3, (String) map.get("op"));
+	    return math.ComputeOperatives(in1, in2, in3, op);
 	}
     }
     if (value instanceof String path) {

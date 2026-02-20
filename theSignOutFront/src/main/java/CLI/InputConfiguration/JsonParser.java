@@ -2,6 +2,7 @@ package CLI.InputConfiguration;
 
 import CLI.InputConfiguration.Operations.Operation;
 import CLI.InputConfiguration.Operations.OperationsConfig;
+import Data.Slide.SlideConfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.FileNotFoundException;
@@ -70,6 +71,29 @@ public class JsonParser {
     public static Map<String, Object> parseSimulationJSON() throws Exception {
         ObjectMapper mapper = new ObjectMapper();
         String resourcePath = "/JsonRoot/Simulation/Simulation.json";
+        try (InputStream inputStream = JsonParser.class.getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new FileNotFoundException("Resource not found in classpath: " + resourcePath);
+            }
+            return mapper.readValue(inputStream, Map.class);
+        }
+    }
+
+    public static SlideConfig parseSlideJSON() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String resourcePath = "/JsonRoot/Slides/Slides.json";
+        try (InputStream inputStream = JsonParser.class.getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new FileNotFoundException("Resource not found in classpath: " + resourcePath);
+            }
+            return mapper.readValue(inputStream, SlideConfig.class);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, Object> parseDrivewayJSON() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        String resourcePath = "/JsonRoot/Driveway/Driveway.json";
         try (InputStream inputStream = JsonParser.class.getResourceAsStream(resourcePath)) {
             if (inputStream == null) {
                 throw new FileNotFoundException("Resource not found in classpath: " + resourcePath);

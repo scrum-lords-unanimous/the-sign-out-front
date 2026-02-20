@@ -1,0 +1,10 @@
+{
+  "cycleDuration": 10,
+  "slides": [
+    {"id": "slide-1", "name": "Welcome"},
+    {"id": "slide-2", "name": "Sports Schedule"},
+    {"id": "slide-3", "name": "Upcoming Events"},
+    {"id": "slide-4", "name": "Announcements"},
+    {"id": "slide-5", "name": "Cafeteria Menu"}
+  ]
+}

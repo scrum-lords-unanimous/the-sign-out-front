@@ -1,0 +1,7 @@
+{
+  "length": "long-is-driveway",
+  "curveCount": "curves-in-driveway",
+  "avgRadius": "avg-radii-of-drive-curves",
+  "straightSpeed": "avg-speed",
+  "carWeight": "how-heavy-is-the-car"
+}

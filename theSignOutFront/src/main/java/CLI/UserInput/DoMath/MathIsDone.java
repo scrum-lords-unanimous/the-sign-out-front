@@ -12,7 +12,7 @@ public double ComputeOperatives (double inputOne, double inputTwo, double inputT
 	case "DIVIDE" -> inputOne / inputTwo;
 	case "SQRT" -> Math.sqrt(inputOne);
 	case "SIN" -> Math.sin(inputTwo);
-	case "CENTRIFUGAL" -> (Math.sqrt(inputOne * inputTwo) / inputThree);
+	case "CENTRIFUGAL" -> (Math.sqrt(inputOne * inputTwo) / Math.log(inputThree));
 	default -> 0;
     };
 

@@ -1,0 +1,112 @@
+.sidebar {
+    -fx-background-color: -fx-background;
+    -fx-padding: 16 8 8 8;
+}
+
+.sidebar .button {
+    -fx-alignment: center-left;
+    -fx-padding: 8 12;
+    -fx-graphic-text-gap: 6;
+}
+
+.sidebar .button:hover {
+    -fx-background-color: #323232, #323232, #323232;
+}
+
+.sidebar .button.active {
+    -fx-background-color: #323232, #323232, #323232;
+}
+
+.sidebar-divider {
+    -fx-min-height: 1;
+    -fx-max-height: 1;
+    -fx-background-color: #404040;
+}
+
+.nav-indicator {
+    -fx-fill: -AccentFillColorDefaultBrush;
+}
+
+.sim-card {
+    -fx-background-color: -ControlFillColorDefaultBrush;
+    -fx-background-radius: 8;
+}
+
+.sim-card:hover {
+    -fx-background-color: -ControlFillColorSecondaryBrush;
+}
+
+.sim-card.add-card {
+    -fx-border-color: -ControlFillColorSecondaryBrush;
+    -fx-border-width: 2;
+    -fx-border-style: dashed;
+    -fx-border-radius: 8;
+}
+
+.node-canvas {
+    -fx-background-color: -ControlFillColorTransparentBrush;
+    -fx-background-radius: 0 0 6 6;
+}
+
+.node-box {
+    -fx-background-color: -ControlElevationBorderBrush, -ControlElevationBorderBrush, -ControlFillColorDefaultBrush;
+    -fx-background-insets: 0, 0 0 1 0, 1;
+    -fx-background-radius: 8, 8, 7;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.08), 6, 0, 0, 2);
+}
+
+.node-box-header {
+    -fx-background-color: transparent;
+}
+
+.step-type-badge {
+    -fx-background-radius: 4;
+}
+
+.node-port {
+    -fx-cursor: hand;
+}
+
+.node-port-circle {
+    -fx-fill: -ControlFillColorTertiaryBrush;
+    -fx-stroke: -ControlStrongStrokeColorDefaultBrush;
+    -fx-stroke-width: 2;
+}
+
+.node-port-circle.connected {
+    -fx-fill: -AccentFillColorDefaultBrush;
+}
+
+.node-port:hover .node-port-circle {
+    -fx-fill: -AccentFillColorSecondaryBrush;
+    -fx-stroke: -AccentFillColorDefaultBrush;
+}
+
+.node-connection {
+    -fx-stroke: -AccentFillColorTertiaryBrush;
+}
+
+.editor-toolbar {
+    -fx-background-color: -ControlFillColorDefaultBrush;
+    -fx-background-radius: 6 6 0 0;
+    -fx-border-color: transparent transparent #404040 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.file-list-item {
+    -fx-padding: 6 12;
+    -fx-font-size: 13px;
+}
+
+.file-list-item:hover {
+    -fx-background-color: -ControlFillColorSecondaryBrush;
+}
+
+.file-list-item:armed {
+    -fx-background-color: -ControlFillColorTertiaryBrush;
+}
+
+.json-viewer {
+    -fx-background-color: #1e1e1e;
+    -fx-background: #1e1e1e;
+}

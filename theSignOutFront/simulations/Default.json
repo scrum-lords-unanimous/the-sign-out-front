@@ -1,0 +1,154 @@
+{
+  "name" : "Default",
+  "steps" : [ {
+    "type" : "print",
+    "value" : "Simulation Start"
+  }, {
+    "type" : "spawn",
+    "count" : "answers.childs-on-campus",
+    "as" : "students"
+  }, {
+    "type" : "precompute-driveway"
+  }, {
+    "type" : "for",
+    "var" : "tick",
+    "from" : 0,
+    "to" : 86400,
+    "step" : "answers.rate-of-advancement",
+    "steps" : [ {
+      "type" : "print",
+      "value" : "tick"
+    }, {
+      "type" : "for-each",
+      "collection" : "students",
+      "as" : "student",
+      "steps" : [ {
+        "type" : "if",
+        "condition" : {
+          "and" : [ {
+            "=" : [ "student.onDriveway", false ]
+          }, {
+            "=" : [ "student.position", 0 ]
+          }, {
+            "ge" : [ "tick", {
+              "op" : "ADD",
+              "args" : [ {
+                "op" : "MULTIPLY",
+                "args" : [ "student.arrivalHour", 3600 ]
+              }, {
+                "op" : "MULTIPLY",
+                "args" : [ "student.arrivalMinute", 60 ]
+              } ]
+            } ]
+          } ]
+        },
+        "then" : [ {
+          "type" : "set",
+          "target" : "student.onDriveway",
+          "value" : true
+        }, {
+          "type" : "record-slide-view"
+        } ]
+      }, {
+        "type" : "if",
+        "condition" : {
+          "=" : [ "student.onDriveway", true ]
+        },
+        "then" : [ {
+          "type" : "set",
+          "target" : "student.position",
+          "value" : {
+            "op" : "ADD",
+            "args" : [ "student.position", {
+              "op" : "MULTIPLY",
+              "args" : [ {
+                "op" : "DIVIDE",
+                "args" : [ {
+                  "op" : "DRIVEWAY_SPEED",
+                  "args" : [ "student.position" ]
+                }, 3600 ]
+              }, "answers.rate-of-advancement" ]
+            } ]
+          }
+        }, {
+          "type" : "if",
+          "condition" : {
+            "ge" : [ "student.position", "answers.long-is-driveway" ]
+          },
+          "then" : [ {
+            "type" : "set",
+            "target" : "student.onDriveway",
+            "value" : false
+          } ]
+        } ]
+      } ]
+    } ]
+  }, {
+    "type" : "slide-report"
+  }, {
+    "type" : "print",
+    "value" : "Simulation complete!"
+  } ],
+  "layout" : {
+    "70883d9b-179c-4cfc-99ac-c6e9b6d6f696" : {
+      "x" : 80.0,
+      "y" : 60.0
+    },
+    "eab195e0-0f20-47b0-86fb-2051c4198475" : {
+      "x" : 80.0,
+      "y" : 212.0
+    },
+    "f8e76372-153c-4838-8477-34eca06953bc" : {
+      "x" : 80.0,
+      "y" : 402.0
+    },
+    "de1fa77c-730c-462c-9d7d-673f27a2882b" : {
+      "x" : 80.0,
+      "y" : 508.0
+    },
+    "6ee94c44-42a3-4a42-9879-af03320e9cf0" : {
+      "x" : 380.0,
+      "y" : 508.0
+    },
+    "92504c7e-4fdb-4772-972c-fe863b6a5f03" : {
+      "x" : 380.0,
+      "y" : 660.0
+    },
+    "8220117b-105c-46b0-b161-d1b3a923dc7e" : {
+      "x" : 680.0,
+      "y" : 660.0
+    },
+    "1edc89a4-36ef-4b29-99ef-d61118405771" : {
+      "x" : 980.0,
+      "y" : 660.0
+    },
+    "b333fde9-946e-4d3b-8cc2-c4aa8989edef" : {
+      "x" : 980.0,
+      "y" : 850.0
+    },
+    "c75ec144-1675-44ef-b95e-ada91f731e12" : {
+      "x" : 680.0,
+      "y" : 1104.0
+    },
+    "f680f4c4-3a14-4e07-bdd6-ddd1dce4187e" : {
+      "x" : 980.0,
+      "y" : 1104.0
+    },
+    "06abb42b-47f0-4db0-b830-4db9bc1950cc" : {
+      "x" : 980.0,
+      "y" : 1539.0
+    },
+    "e7c09def-54db-48a0-93e5-0963d99d030a" : {
+      "x" : 1280.0,
+      "y" : 1539.0
+    },
+    "5090b1d3-d680-4c53-88aa-982e56ad1895" : {
+      "x" : 80.0,
+      "y" : 1729.0
+    },
+    "f10d8790-01eb-40ff-a579-e47c81504c0c" : {
+      "x" : 80.0,
+      "y" : 1835.0
+    }
+  }
+}

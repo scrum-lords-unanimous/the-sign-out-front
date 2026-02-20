@@ -1,0 +1,203 @@
+.root {
+    -TextFillColorPrimaryBrush: #ffffff;
+    -TextFillColorSecondaryBrush: #c8c8c8;
+    -TextFillColorTertiaryBrush: #9b9b9b;
+    -TextFillColorDisabledBrush: #6d6d6d;
+    -AccentTextFillColorDisabledBrush: #6d6d6d;
+    -TextOnAccentFillColorSelectedTextBrush: #fff;
+    -TextOnAccentFillColorSecondaryBrush: #e0e0e0;
+    -TextOnAccentFillColorDisabledBrush: #9b9b9b;
+    -ControlFillColorDefaultBrush: #323232;
+    -ControlFillColorSecondaryBrush: #383838;
+    -ControlFillColorTertiaryBrush: #2d2d2d;
+    -ControlFillColorQuarternaryBrush: #2d2d2d;
+    -ControlFillColorDisabledBrush: #2d2d2d;
+    -ControlFillColorTransparentBrush: #202020;
+    -ControlFillColorInputActiveBrush: #1e1e1e;
+    -SubtleFillColorTransparentBrush: transparent;
+    -SubtleFillColorSecondaryBrush: rgba(255, 255, 255, 0.06);
+    -SubtleFillColorTertiaryBrush: rgba(255, 255, 255, 0.04);
+    -SubtleFillColorDisabledBrush: transparent;
+    -AccentFillColorDisabledBrush: #4d4d4d;
+    -ControlElevationBorderBrush: #454545;
+    -CircleElevationBorderBrush: #454545;
+    -TextControlElevationBorderBrush: #454545;
+    -AccentControlElevationBorderBrush: #454545;
+    -ControlStrongStrokeColorDefaultBrush: #9b9b9b;
+    -ControlStrongStrokeColorDisabledBrush: #4d4d4d;
+    -FocusStrokeColorOuterBrush: #ffffff;
+    -FocusStrokeColorInnerBrush: #1a1a1a;
+    -SystemFillColorSuccessBackgroundBrush: #393d1b;
+    -SystemFillColorCautionBackgroundBrush: #433519;
+    -SystemFillColorCriticalBackgroundBrush: #442726;
+    -SystemFillColorAttentionBackgroundBrush: #2e2e2e;
+    -SystemFillColorNeutralBackgroundBrush: #2e2e2e;
+    -SystemFillColorSolidNeutralBrush: #9d9d9d;
+    -SystemFillColorSolidNeutralBackgroundBrush: #2e2e2e;
+    -SystemFillColorSolidAttentionBackgroundBrush: #2e2e2e;
+    -fx-base: #323232;
+    -fx-background: #202020;
+    -fx-dark-text-color: #ffffff;
+    -fx-mid-text-color: #c8c8c8;
+    -fx-light-text-color: #ffffff;
+    -fx-mark-color: #c8c8c8;
+    -fx-selection-bar-non-focused: #3d3d3d;
+    -fx-cell-hover-color: rgba(255, 255, 255, 0.06);
+}
+
+.button,
+.menu-button,
+.toggle-button {
+    -fx-background-color: #454545, #454545, #323232;
+}
+
+.button:hover,
+.menu-button:hover,
+.toggle-button:hover {
+    -fx-background-color: #454545, #454545, #383838;
+}
+
+.button:armed,
+.menu-button:armed,
+.toggle-button:armed {
+    -fx-background-color: #3a3a3a, #3a3a3a, #2d2d2d;
+}
+
+.button:disabled,
+.menu-button:disabled,
+.toggle-button:disabled {
+    -fx-background-color: #3a3a3a, #3a3a3a, #2d2d2d;
+}
+
+.button.borderless-button,
+.menu-button.borderless-button,
+.toggle-button.borderless-button {
+    -fx-background-color: transparent, transparent, transparent;
+}
+
+.button.borderless-button:hover,
+.menu-button.borderless-button:hover,
+.toggle-button.borderless-button:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06);
+}
+
+.button.borderless-button:armed,
+.menu-button.borderless-button:armed,
+.toggle-button.borderless-button:armed {
+    -fx-background-color: rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.04);
+}
+
+.text-input {
+    -fx-background-color: #9b9b9b, #454545, #323232;
+}
+
+.text-input:hover {
+    -fx-background-color: #9b9b9b, #454545, #383838;
+}
+
+.text-input:focused {
+    -fx-background-color: -fx-accent, #454545, #1e1e1e;
+}
+
+.choice-box,
+.combo-box-base {
+    -fx-background-color: #454545, #454545, #323232;
+}
+
+.choice-box:hover,
+.combo-box-base:hover {
+    -fx-background-color: #454545, #454545, #383838;
+}
+
+.context-menu {
+    -fx-background-color: #2e2e2e;
+    -fx-text-fill: #fff;
+    -fx-border-color: rgba(255, 255, 255, 0.13);
+}
+
+.tooltip {
+    -fx-background-color: #323232;
+    -fx-border-color: rgba(255, 255, 255, 0.1);
+}
+
+.check-box > .box {
+    -fx-background-color: #9b9b9b, #323232;
+}
+
+.check-box:hover .box {
+    -fx-background-color: #9b9b9b, #383838;
+}
+
+.radio-button > .radio {
+    -fx-background-color: #9b9b9b, #323232;
+}
+
+.radio-button:hover > .radio {
+    -fx-background-color: #9b9b9b, #383838;
+}
+
+.titled-pane > .title {
+    -fx-background-color: #3a3a3a, #323232;
+}
+
+.titled-pane > *.content {
+    -fx-border-color: #3a3a3a;
+    -fx-background-color: #2e2e2e;
+}
+
+.table-view,
+.tree-table-view {
+    -fx-table-cell-border-color: #3a3a3a;
+    -fx-background-color: #323232;
+}
+
+.table-view .column-header .label,
+.tree-table-view .column-header .label {
+    -fx-text-fill: #9b9b9b;
+}
+
+.table-view .column-header,
+.tree-table-view .column-header,
+.table-view .filler,
+.tree-table-view .filler {
+    -fx-background-color: #454545, #323232, #323232;
+}
+
+.table-view .empty-table,
+.tree-table-view .empty-table {
+    -fx-background-color: #323232;
+}
+
+.dialog-pane,
+.fluent-dialog {
+    -fx-background-color: #2e2e2e;
+}
+
+.dialog-pane > .button-bar > .container,
+.fluent-dialog > .button-bar-container {
+    -fx-background-color: #454545, #252525;
+}
+
+.scroll-bar > .track-background {
+    -fx-background-color: #2a2a2a;
+}
+
+.scroll-bar > .thumb {
+    -fx-background-color: #6d6d6d;
+}
+
+.sidebar .button.active {
+    -fx-background-color: #323232, #323232, #323232;
+}
+
+.combo-box-popup > .list-view {
+    -fx-background-color: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)), #2e2e2e;
+}
+
+.date-picker-popup {
+    -fx-background-color: #3a3a3a, #2e2e2e;
+}
+
+.date-picker-popup > .month-year-pane {
+    -fx-background-color: #333333, #2e2e2e;
+}
