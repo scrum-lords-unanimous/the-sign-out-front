@@ -8,14 +8,18 @@ import java.util.regex.*;
 
 public class JsonTokenizer {
 
-    private static final Font FONT = Font.font("Consolas", 13);
-    private static final String KEY_COLOR = "#4a9eff";
-    private static final String STRING_COLOR = "#50c878";
-    private static final String NUMBER_COLOR = "#e8a838";
-    private static final String BOOL_COLOR = "#c678dd";
-    private static final String STRUCT_COLOR = "#9b9b9b";
+    private static final String FONT_FAMILY = "Consolas";
+    private static final int FONT_SIZE = 13;
+    private static final Font CODE_FONT = Font.font(FONT_FAMILY, FONT_SIZE);
 
-    private static final Pattern TOKEN = Pattern.compile(
+    private static final String NUMBER_PATTERN_REGEX = "-?\\d.*";
+    private static final String JSON_KEY_STYLE = "json-key";
+    private static final String JSON_STRING_STYLE = "json-string";
+    private static final String JSON_NUMBER_STYLE = "json-number";
+    private static final String JSON_BOOL_STYLE = "json-bool";
+    private static final String JSON_STRUCT_STYLE = "json-struct";
+
+    private static final Pattern JSON_TOKEN_PATTERN = Pattern.compile(
             "\"(?:[^\"\\\\]|\\\\.)*\"|" +
             "-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?|" +
             "\\btrue\\b|\\bfalse\\b|\\bnull\\b|" +
@@ -24,46 +28,74 @@ public class JsonTokenizer {
     );
 
     public static TextFlow colorize(String json) {
-        TextFlow flow = new TextFlow();
-        Matcher m = TOKEN.matcher(json);
-        int last = 0;
-        while (m.find()) {
-            if (m.start() > last) flow.getChildren().add(styled(json.substring(last, m.start()), STRUCT_COLOR));
-            String tok = m.group();
-            String color;
-            if (tok.startsWith("\"")) {
-                color = isKey(json, m.end()) ? KEY_COLOR : STRING_COLOR;
-            } else if (tok.matches("-?\\d.*")) {
-                color = NUMBER_COLOR;
-            } else if (tok.equals("true") || tok.equals("false") || tok.equals("null")) {
-                color = BOOL_COLOR;
-            } else if (tok.trim().isEmpty()) {
-                flow.getChildren().add(styled(tok, STRUCT_COLOR));
-                last = m.end();
-                continue;
-            } else {
-                color = STRUCT_COLOR;
+        TextFlow textFlow = new TextFlow();
+        Matcher tokenMatcher = JSON_TOKEN_PATTERN.matcher(json);
+        int lastMatchEnd = 0;
+
+        while (tokenMatcher.find()) {
+            if (tokenMatcher.start() > lastMatchEnd) {
+                String unmatchedText = json.substring(lastMatchEnd, tokenMatcher.start());
+                textFlow.getChildren().add(buildStyledText(unmatchedText, JSON_STRUCT_STYLE));
             }
-            flow.getChildren().add(styled(tok, color));
-            last = m.end();
+
+            String tokenText = tokenMatcher.group();
+            String styleClass = classifyToken(tokenText, json, tokenMatcher.end());
+
+            if (styleClass == null) {
+                textFlow.getChildren().add(buildStyledText(tokenText, JSON_STRUCT_STYLE));
+                lastMatchEnd = tokenMatcher.end();
+                continue;
+            }
+
+            textFlow.getChildren().add(buildStyledText(tokenText, styleClass));
+            lastMatchEnd = tokenMatcher.end();
         }
-        if (last < json.length()) flow.getChildren().add(styled(json.substring(last), STRUCT_COLOR));
-        return flow;
+
+        if (lastMatchEnd < json.length()) {
+            String remainingText = json.substring(lastMatchEnd);
+            textFlow.getChildren().add(buildStyledText(remainingText, JSON_STRUCT_STYLE));
+        }
+
+        return textFlow;
     }
 
-    private static boolean isKey(String json, int pos) {
-        for (int i = pos; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (c == ':') return true;
-            if (!Character.isWhitespace(c)) return false;
+    private static String classifyToken(String tokenText, String fullJson, int tokenEndPosition) {
+        if (tokenText.startsWith("\"")) {
+            return isJsonKey(fullJson, tokenEndPosition) ? JSON_KEY_STYLE : JSON_STRING_STYLE;
+        }
+
+        if (tokenText.matches(NUMBER_PATTERN_REGEX)) {
+            return JSON_NUMBER_STYLE;
+        }
+
+        if (tokenText.equals("true") || tokenText.equals("false") || tokenText.equals("null")) {
+            return JSON_BOOL_STYLE;
+        }
+
+        if (tokenText.trim().isEmpty()) {
+            return null;
+        }
+
+        return JSON_STRUCT_STYLE;
+    }
+
+    private static boolean isJsonKey(String json, int positionAfterToken) {
+        for (int index = positionAfterToken; index < json.length(); index++) {
+            char character = json.charAt(index);
+            if (character == ':') {
+                return true;
+            }
+            if (!Character.isWhitespace(character)) {
+                return false;
+            }
         }
         return false;
     }
 
-    private static Text styled(String content, String color) {
-        Text t = new Text(content);
-        t.setFont(FONT);
-        t.setStyle("-fx-fill: " + color + ";");
-        return t;
+    private static Text buildStyledText(String content, String styleClass) {
+        Text styledText = new Text(content);
+        styledText.setFont(CODE_FONT);
+        styledText.getStyleClass().add(styleClass);
+        return styledText;
     }
 }

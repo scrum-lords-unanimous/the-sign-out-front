@@ -8,6 +8,10 @@ import javafx.scene.shape.Circle;
 
 public class NodePort extends StackPane {
 
+    private static final double PORT_CIRCLE_RADIUS = 7;
+    private static final double PORT_SIZE = 18;
+    private static final String CONNECTED_STYLE_CLASS = "connected";
+
     public enum Direction { INPUT, OUTPUT }
 
     public enum PortRole {
@@ -15,12 +19,18 @@ public class NodePort extends StackPane {
 
         public String label() {
             switch (this) {
-                case EXEC_IN:    return "In";
-                case EXEC_OUT:   return "Out";
-                case LOOP_BODY:  return "Loop Body";
-                case THEN:       return "Then";
-                case ELSE:       return "Else";
-                default:         return name();
+                case EXEC_IN:
+                    return "In";
+                case EXEC_OUT:
+                    return "Out";
+                case LOOP_BODY:
+                    return "Loop Body";
+                case THEN:
+                    return "Then";
+                case ELSE:
+                    return "Else";
+                default:
+                    return name();
             }
         }
     }
@@ -34,40 +44,54 @@ public class NodePort extends StackPane {
         this.direction = direction;
         this.role = role;
 
-        circle = new Circle(7);
+        circle = new Circle(PORT_CIRCLE_RADIUS);
         circle.getStyleClass().add("node-port-circle");
         getChildren().add(circle);
         getStyleClass().add("node-port");
 
-        setPrefSize(18, 18);
-        setMinSize(18, 18);
-        setMaxSize(18, 18);
+        setPrefSize(PORT_SIZE, PORT_SIZE);
+        setMinSize(PORT_SIZE, PORT_SIZE);
+        setMaxSize(PORT_SIZE, PORT_SIZE);
 
-        // Update visual when connection state changes
-        connection.addListener((obs, oldConn, newConn) -> {
-            if (newConn != null) {
-                if (!circle.getStyleClass().contains("connected")) {
-                    circle.getStyleClass().add("connected");
+        connection.addListener((observable, oldConnection, newConnection) -> {
+            if (newConnection != null) {
+                if (!circle.getStyleClass().contains(CONNECTED_STYLE_CLASS)) {
+                    circle.getStyleClass().add(CONNECTED_STYLE_CLASS);
                 }
             } else {
-                circle.getStyleClass().remove("connected");
+                circle.getStyleClass().remove(CONNECTED_STYLE_CLASS);
             }
         });
     }
 
-    public Direction getDirection() { return direction; }
-    public PortRole getRole() { return role; }
-    public Circle getCircle() { return circle; }
+    public Direction getDirection() {
+        return direction;
+    }
 
-    public ObjectProperty<NodeConnection> connectionProperty() { return connection; }
-    public NodeConnection getConnection() { return connection.get(); }
-    public void setConnection(NodeConnection conn) { connection.set(conn); }
+    public PortRole getRole() {
+        return role;
+    }
 
-    public boolean isConnected() { return connection.get() != null; }
+    public Circle getCircle() {
+        return circle;
+    }
 
-    /**
-     * Returns the center of this port in the coordinate space of the given ancestor.
-     */
+    public ObjectProperty<NodeConnection> connectionProperty() {
+        return connection;
+    }
+
+    public NodeConnection getConnection() {
+        return connection.get();
+    }
+
+    public void setConnection(NodeConnection connectionValue) {
+        connection.set(connectionValue);
+    }
+
+    public boolean isConnected() {
+        return connection.get() != null;
+    }
+
     public Point2D getCenterInScene() {
         return localToScene(getWidth() / 2, getHeight() / 2);
     }

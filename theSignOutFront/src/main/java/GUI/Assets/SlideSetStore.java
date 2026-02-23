@@ -12,141 +12,190 @@ import java.util.*;
 
 public class SlideSetStore {
 
-    private static final ObjectMapper mapper = new ObjectMapper()
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
             .enable(SerializationFeature.INDENT_OUTPUT);
-    private static final Path SETS_DIR = Paths.get("assets", "slide-sets");
+    private static final Path SETS_DIRECTORY = Paths.get("assets", "slide-sets");
+    private static final String JSON_EXTENSION = ".json";
+    private static final String IMAGE_EXTENSION = ".png";
+    private static final String ACTIVE_SET_FILENAME = "active.txt";
+    private static final String DEFAULT_SET_NAME = "Default";
+    private static final int JSON_EXTENSION_LENGTH = JSON_EXTENSION.length();
 
     public static void ensureDefaults() {
         try {
-            Files.createDirectories(SETS_DIR);
-            Path defaultJson = SETS_DIR.resolve("Default.json");
-            if (!Files.exists(defaultJson)) {
-                SlideConfig src = SlideStore.loadConfig();
-                mapper.writeValue(defaultJson.toFile(), src);
-                Path defaultImgs = SETS_DIR.resolve("Default");
-                Files.createDirectories(defaultImgs);
-                for (Slide s : src.getSlides()) {
-                    Path old = SlideStore.imagePath(s.getId());
-                    if (Files.exists(old))
-                        Files.copy(old, defaultImgs.resolve(s.getId() + ".png"), StandardCopyOption.REPLACE_EXISTING);
+            Files.createDirectories(SETS_DIRECTORY);
+            Path defaultJsonPath = SETS_DIRECTORY.resolve(DEFAULT_SET_NAME + JSON_EXTENSION);
+
+            if (!Files.exists(defaultJsonPath)) {
+                SlideConfig sourceConfig = SlideStore.loadConfig();
+                JSON_MAPPER.writeValue(defaultJsonPath.toFile(), sourceConfig);
+
+                Path defaultImagesDirectory = SETS_DIRECTORY.resolve(DEFAULT_SET_NAME);
+                Files.createDirectories(defaultImagesDirectory);
+
+                for (Slide slide : sourceConfig.getSlides()) {
+                    Path originalImagePath = SlideStore.imagePath(slide.getId());
+                    if (Files.exists(originalImagePath)) {
+                        Path destinationPath = defaultImagesDirectory.resolve(slide.getId() + IMAGE_EXTENSION);
+                        Files.copy(originalImagePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
+                    }
                 }
-                if (!Files.exists(SETS_DIR.resolve("active.txt")))
-                    Files.writeString(SETS_DIR.resolve("active.txt"), "Default");
+
+                Path activeSetFilePath = SETS_DIRECTORY.resolve(ACTIVE_SET_FILENAME);
+                if (!Files.exists(activeSetFilePath)) {
+                    Files.writeString(activeSetFilePath, DEFAULT_SET_NAME);
+                }
             }
-        } catch (IOException e) {
-            System.err.println("Failed to bootstrap slide sets: " + e.getMessage());
+        } catch (IOException exception) {
+            System.err.println("Failed to bootstrap slide sets: " + exception.getMessage());
         }
     }
 
     public static List<String> listSets() {
         ensureDefaults();
-        List<String> names = new ArrayList<>();
-        try (DirectoryStream<Path> ds = Files.newDirectoryStream(SETS_DIR, "*.json")) {
-            for (Path p : ds) {
-                String f = p.getFileName().toString();
-                names.add(f.substring(0, f.length() - 5));
+        List<String> setNames = new ArrayList<>();
+        try (DirectoryStream<Path> jsonFiles = Files.newDirectoryStream(SETS_DIRECTORY, "*" + JSON_EXTENSION)) {
+            for (Path jsonFilePath : jsonFiles) {
+                String fileName = jsonFilePath.getFileName().toString();
+                String setName = fileName.substring(0, fileName.length() - JSON_EXTENSION_LENGTH);
+                setNames.add(setName);
             }
-        } catch (IOException ignored) {}
-        Collections.sort(names);
-        return names;
+        } catch (IOException ignored) {
+        }
+        Collections.sort(setNames);
+        return setNames;
     }
 
-    public static SlideConfig loadSet(String name) {
+    public static SlideConfig loadSet(String setName) {
         try {
-            return mapper.readValue(SETS_DIR.resolve(name + ".json").toFile(), SlideConfig.class);
-        } catch (IOException e) { return null; }
-    }
-
-    public static void saveSet(String name, SlideConfig config) {
-        ensureDefaults();
-        try {
-            Files.createDirectories(SETS_DIR.resolve(name));
-            mapper.writeValue(SETS_DIR.resolve(name + ".json").toFile(), config);
-        } catch (IOException e) {
-            System.err.println("Failed to save set: " + e.getMessage());
+            Path setJsonPath = SETS_DIRECTORY.resolve(setName + JSON_EXTENSION);
+            return JSON_MAPPER.readValue(setJsonPath.toFile(), SlideConfig.class);
+        } catch (IOException exception) {
+            return null;
         }
     }
 
-    public static void deleteSet(String name) {
+    public static void saveSet(String setName, SlideConfig config) {
+        ensureDefaults();
         try {
-            Files.deleteIfExists(SETS_DIR.resolve(name + ".json"));
-            Path dir = SETS_DIR.resolve(name);
-            if (Files.isDirectory(dir))
-                try (DirectoryStream<Path> ds = Files.newDirectoryStream(dir)) {
-                    for (Path p : ds) Files.deleteIfExists(p);
-                }
-            Files.deleteIfExists(dir);
-        } catch (IOException ignored) {}
+            Files.createDirectories(SETS_DIRECTORY.resolve(setName));
+            Path setJsonPath = SETS_DIRECTORY.resolve(setName + JSON_EXTENSION);
+            JSON_MAPPER.writeValue(setJsonPath.toFile(), config);
+        } catch (IOException exception) {
+            System.err.println("Failed to save set: " + exception.getMessage());
+        }
     }
 
-    public static void copySetImage(String setName, String slideId, File source) {
+    public static void deleteSet(String setName) {
         try {
-            Path dir = SETS_DIR.resolve(setName);
-            Files.createDirectories(dir);
-            Files.copy(source.toPath(), dir.resolve(slideId + ".png"), StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            System.err.println("Failed to copy set image: " + e.getMessage());
+            Files.deleteIfExists(SETS_DIRECTORY.resolve(setName + JSON_EXTENSION));
+            Path setImagesDirectory = SETS_DIRECTORY.resolve(setName);
+            if (Files.isDirectory(setImagesDirectory)) {
+                try (DirectoryStream<Path> imageFiles = Files.newDirectoryStream(setImagesDirectory)) {
+                    for (Path imageFile : imageFiles) {
+                        Files.deleteIfExists(imageFile);
+                    }
+                }
+            }
+            Files.deleteIfExists(setImagesDirectory);
+        } catch (IOException ignored) {
+        }
+    }
+
+    public static void copySetImage(String setName, String slideId, File sourceFile) {
+        try {
+            Path setImagesDirectory = SETS_DIRECTORY.resolve(setName);
+            Files.createDirectories(setImagesDirectory);
+            Path destinationPath = setImagesDirectory.resolve(slideId + IMAGE_EXTENSION);
+            Files.copy(sourceFile.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException exception) {
+            System.err.println("Failed to copy set image: " + exception.getMessage());
         }
     }
 
     public static void deleteSetImage(String setName, String slideId) {
-        try { Files.deleteIfExists(SETS_DIR.resolve(setName).resolve(slideId + ".png")); }
-        catch (IOException ignored) {}
+        try {
+            Path imagePath = SETS_DIRECTORY.resolve(setName).resolve(slideId + IMAGE_EXTENSION);
+            Files.deleteIfExists(imagePath);
+        } catch (IOException ignored) {
+        }
     }
 
     public static Image loadSetImage(String setName, String slideId) {
-        Path p = SETS_DIR.resolve(setName).resolve(slideId + ".png");
-        if (!Files.exists(p)) return null;
-        try { return new Image(p.toUri().toString()); }
-        catch (Exception e) { return null; }
+        Path imagePath = SETS_DIRECTORY.resolve(setName).resolve(slideId + IMAGE_EXTENSION);
+        if (!Files.exists(imagePath)) {
+            return null;
+        }
+        try {
+            return new Image(imagePath.toUri().toString());
+        } catch (Exception exception) {
+            return null;
+        }
     }
 
     public static List<Image> loadSetImages(String setName) {
-        SlideConfig cfg = loadSet(setName);
-        if (cfg == null) return List.of();
-        List<Image> imgs = new ArrayList<>();
-        for (Slide s : cfg.getSlides()) {
-            Image img = loadSetImage(setName, s.getId());
-            if (img != null) imgs.add(img);
+        SlideConfig config = loadSet(setName);
+        if (config == null) {
+            return List.of();
         }
-        return imgs;
+        List<Image> images = new ArrayList<>();
+        for (Slide slide : config.getSlides()) {
+            Image slideImage = loadSetImage(setName, slide.getId());
+            if (slideImage != null) {
+                images.add(slideImage);
+            }
+        }
+        return images;
     }
 
     public static List<Slide> loadSlidesWithImages(String setName) {
-        SlideConfig cfg = loadSet(setName);
-        if (cfg == null) return List.of();
-        List<Slide> result = new ArrayList<>();
-        for (Slide s : cfg.getSlides()) {
-            if (Files.exists(SETS_DIR.resolve(setName).resolve(s.getId() + ".png")))
-                result.add(s);
+        SlideConfig config = loadSet(setName);
+        if (config == null) {
+            return List.of();
         }
-        return result;
+        List<Slide> slidesWithImages = new ArrayList<>();
+        for (Slide slide : config.getSlides()) {
+            Path imagePath = SETS_DIRECTORY.resolve(setName).resolve(slide.getId() + IMAGE_EXTENSION);
+            if (Files.exists(imagePath)) {
+                slidesWithImages.add(slide);
+            }
+        }
+        return slidesWithImages;
     }
 
     public static String getActiveSet() {
         ensureDefaults();
-        try { return Files.readString(SETS_DIR.resolve("active.txt")).trim(); }
-        catch (IOException e) { return "Default"; }
+        try {
+            return Files.readString(SETS_DIRECTORY.resolve(ACTIVE_SET_FILENAME)).trim();
+        } catch (IOException exception) {
+            return DEFAULT_SET_NAME;
+        }
     }
 
-    public static void setActiveSet(String name) {
+    public static void setActiveSet(String setName) {
         ensureDefaults();
-        try { Files.writeString(SETS_DIR.resolve("active.txt"), name); }
-        catch (IOException ignored) {}
+        try {
+            Files.writeString(SETS_DIRECTORY.resolve(ACTIVE_SET_FILENAME), setName);
+        } catch (IOException ignored) {
+        }
     }
 
     public static void addSlide(String setName, Slide slide) {
-        SlideConfig cfg = loadSet(setName);
-        if (cfg == null) return;
-        cfg.getSlides().add(slide);
-        saveSet(setName, cfg);
+        SlideConfig config = loadSet(setName);
+        if (config == null) {
+            return;
+        }
+        config.getSlides().add(slide);
+        saveSet(setName, config);
     }
 
     public static void removeSlide(String setName, String slideId) {
-        SlideConfig cfg = loadSet(setName);
-        if (cfg == null) return;
-        cfg.getSlides().removeIf(s -> s.getId().equals(slideId));
-        saveSet(setName, cfg);
+        SlideConfig config = loadSet(setName);
+        if (config == null) {
+            return;
+        }
+        config.getSlides().removeIf(slide -> slide.getId().equals(slideId));
+        saveSet(setName, config);
         deleteSetImage(setName, slideId);
     }
 }

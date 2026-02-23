@@ -43,6 +43,16 @@
     -fx-mark-color: #c8c8c8;
     -fx-selection-bar-non-focused: #3d3d3d;
     -fx-cell-hover-color: rgba(255, 255, 255, 0.06);
+    -divider-color: #202020;
+    -json-key-color: #4a9eff;
+    -json-string-color: #50c878;
+    -json-number-color: #e8a838;
+    -json-bool-color: #c678dd;
+    -json-struct-color: #9b9b9b;
+    -json-editor-bg: #202020;
+    -json-editor-text: #d4d4d4;
+    -json-editor-selection: #264f78;
+    -json-editor-caret: #d4d4d4;
 }
 
 .button,
@@ -187,7 +197,7 @@
 }
 
 .sidebar .button.active {
-    -fx-background-color: #323232, #323232, #323232;
+    -fx-background-color: -ControlFillColorDefaultBrush, -ControlFillColorDefaultBrush, -ControlFillColorDefaultBrush;
 }
 
 .combo-box-popup > .list-view {

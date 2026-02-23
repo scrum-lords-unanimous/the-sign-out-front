@@ -1,161 +1,160 @@
 package GUI.Files;
 
 import GUI.SimEditor.SimulationStore;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.text.TextFlow;
-
-import java.io.*;
-import java.nio.file.*;
-import java.util.*;
 
 public class FilesPage {
 
-    private record FileEntry(String name, String path, boolean editable) {}
+    private static final double LEFT_PANEL_WIDTH = 220;
+    private static final int PANEL_SPACING = 8;
+    private static final int PAGE_SPACING = 12;
+    private static final String EMPTY_STATE_STYLE =
+            "-fx-font-size: 18px; -fx-text-fill: -TextFillColorTertiaryBrush;";
+    private static final String BUTTON_STYLE =
+            "-fx-background-color: -ControlFillColorDefaultBrush; -fx-background-radius: 8;";
+    private static final String RIGHT_SCROLL_STYLE =
+            "-fx-background-color: -ControlFillColorDefaultBrush; " +
+            "-fx-background: -ControlFillColorDefaultBrush; " +
+            "-fx-background-radius: 8;";
+    private static final String SCROLL_TRANSPARENT_STYLE =
+            "-fx-background-color: transparent;";
+    private static final String SANITIZE_PATTERN = "[^a-zA-Z0-9_ -]";
 
-    private static final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     private final VBox rightPanel = new VBox();
-    private FileEntry selected;
+    private FileListPanel fileListPanel;
+    private FileListPanel.FileEntry selectedEntry;
 
     public VBox build(Label title) {
-        VBox fileList = buildFileList();
-        fileList.setPrefWidth(200);
-        fileList.setMinWidth(200);
+        fileListPanel = new FileListPanel(this::onFileSelected);
 
-        ScrollPane listScroll = new ScrollPane(fileList);
-        listScroll.setFitToWidth(true);
-        listScroll.setFitToHeight(true);
-        listScroll.setStyle("-fx-background-color: transparent;");
+        ScrollPane listScrollPane = buildListScrollPane();
+        HBox buttonRow = buildButtonRow();
+        VBox leftSide = buildLeftPanel(listScrollPane, buttonRow);
+        ScrollPane rightScrollPane = buildRightScrollPane();
 
-        rightPanel.setPadding(new Insets(8));
-        rightPanel.setSpacing(8);
-        ScrollPane rightScroll = new ScrollPane(rightPanel);
-        rightScroll.setFitToWidth(true);
-        rightScroll.setFitToHeight(true);
-        HBox.setHgrow(rightScroll, Priority.ALWAYS);
+        HBox splitLayout = new HBox(PANEL_SPACING, leftSide, rightScrollPane);
+        VBox.setVgrow(splitLayout, Priority.ALWAYS);
 
-        HBox split = new HBox(8, listScroll, rightScroll);
-        VBox.setVgrow(split, Priority.ALWAYS);
+        showEmptyState();
 
-        VBox page = new VBox(12, title, split);
+        VBox page = new VBox(PAGE_SPACING, title, splitLayout);
         page.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
         return page;
     }
 
-    private VBox buildFileList() {
-        VBox list = new VBox(2);
-        list.setPadding(new Insets(4));
-
-        Label resHeader = new Label("Resources");
-        resHeader.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 4 8;");
-        list.getChildren().add(resHeader);
-
-        List<FileEntry> resources = List.of(
-                new FileEntry("Slides.json", "/JsonRoot/Slides/Slides.json", false),
-                new FileEntry("Simulation.json", "/JsonRoot/Simulation/Simulation.json", false),
-                new FileEntry("Driveway.json", "/JsonRoot/Driveway/Driveway.json", false),
-                new FileEntry("Questions.json", "/JsonRoot/InputQuestions/Questions.json", false),
-                new FileEntry("DefaultAnswers.json", "/JsonRoot/InputQuestions/DefaultAnswers.json", false),
-                new FileEntry("Operations.json", "/JsonRoot/Operations/Operations.json", false)
-        );
-        for (FileEntry fe : resources) list.getChildren().add(fileItem(fe));
-
-        Label simHeader = new Label("Simulations");
-        simHeader.setStyle("-fx-font-size: 13px; -fx-font-weight: bold; -fx-padding: 8 8 4 8;");
-        list.getChildren().add(simHeader);
-
-        for (String name : SimulationStore.listSimulations()) {
-            FileEntry fe = new FileEntry(name + ".json", "simulations/" + name + ".json", true);
-            list.getChildren().add(fileItem(fe));
-        }
-        return list;
+    private ScrollPane buildListScrollPane() {
+        ScrollPane listScrollPane = new ScrollPane(fileListPanel);
+        listScrollPane.setFitToWidth(true);
+        listScrollPane.setStyle(SCROLL_TRANSPARENT_STYLE);
+        return listScrollPane;
     }
 
-    private Button fileItem(FileEntry fe) {
-        Button btn = new Button(fe.name);
-        btn.setMaxWidth(Double.MAX_VALUE);
-        btn.setAlignment(Pos.CENTER_LEFT);
-        btn.getStyleClass().addAll("borderless-button", "file-list-item");
-        btn.setOnAction(e -> { selected = fe; showView(fe); });
-        return btn;
+    private HBox buildButtonRow() {
+        Button newButton = new Button("New");
+        newButton.setMaxWidth(Double.MAX_VALUE);
+        newButton.setStyle(BUTTON_STYLE);
+        HBox.setHgrow(newButton, Priority.ALWAYS);
+        newButton.setOnAction(event -> promptNewFile(false));
+
+        Button copyDefaultButton = new Button("Copy Default");
+        copyDefaultButton.setMaxWidth(Double.MAX_VALUE);
+        copyDefaultButton.setStyle(BUTTON_STYLE);
+        HBox.setHgrow(copyDefaultButton, Priority.ALWAYS);
+        copyDefaultButton.setOnAction(event -> promptNewFile(true));
+
+        HBox buttonRow = new HBox(PANEL_SPACING, newButton, copyDefaultButton);
+        buttonRow.setPadding(Insets.EMPTY);
+        return buttonRow;
     }
 
-    private String readContent(FileEntry fe) {
-        try {
-            if (!fe.editable) {
-                try (InputStream in = getClass().getResourceAsStream(fe.path)) {
-                    if (in == null) return "File not found";
-                    return new String(in.readAllBytes());
-                }
-            }
-            return Files.readString(Path.of(fe.path));
-        } catch (IOException e) { return "Error reading file: " + e.getMessage(); }
+    private VBox buildLeftPanel(ScrollPane listScrollPane, HBox buttonRow) {
+        VBox leftSide = new VBox(PANEL_SPACING, listScrollPane, buttonRow);
+        leftSide.setPrefWidth(LEFT_PANEL_WIDTH);
+        leftSide.setMinWidth(LEFT_PANEL_WIDTH);
+        leftSide.setMaxWidth(LEFT_PANEL_WIDTH);
+        VBox.setVgrow(listScrollPane, Priority.NEVER);
+        return leftSide;
     }
 
-    private void showView(FileEntry fe) {
+    private ScrollPane buildRightScrollPane() {
+        rightPanel.setPadding(new Insets(PANEL_SPACING));
+        rightPanel.setSpacing(PANEL_SPACING);
+        rightPanel.setMinWidth(0);
+
+        ScrollPane rightScrollPane = new ScrollPane(rightPanel);
+        rightScrollPane.setFitToWidth(true);
+        rightScrollPane.setFitToHeight(true);
+        rightScrollPane.setMinWidth(0);
+        rightScrollPane.setStyle(RIGHT_SCROLL_STYLE);
+        HBox.setHgrow(rightScrollPane, Priority.ALWAYS);
+        return rightScrollPane;
+    }
+
+    private void showEmptyState() {
         rightPanel.getChildren().clear();
-        String content = readContent(fe);
-        String pretty = prettify(content);
-        TextFlow flow = JsonTokenizer.colorize(pretty);
-        flow.setPadding(new Insets(12));
-        flow.setStyle("-fx-background-color: #1e1e1e; -fx-background-radius: 6;");
+        Label promptLabel = new Label("Please select a file");
+        promptLabel.setStyle(EMPTY_STATE_STYLE);
+        StackPane centeredWrapper = new StackPane(promptLabel);
+        centeredWrapper.setAlignment(Pos.CENTER);
+        VBox.setVgrow(centeredWrapper, Priority.ALWAYS);
+        rightPanel.getChildren().add(centeredWrapper);
+    }
 
-        ScrollPane sp = new ScrollPane(flow);
-        sp.setFitToWidth(true);
-        sp.getStyleClass().add("json-viewer");
-        VBox.setVgrow(sp, Priority.ALWAYS);
+    private void onFileSelected(FileListPanel.FileEntry fileEntry) {
+        selectedEntry = fileEntry;
+        JsonViewer.showView(rightPanel, fileEntry, this::onEdit, () -> onDelete(fileEntry));
+    }
 
-        if (fe.editable) {
-            Button editBtn = new Button("Edit");
-            editBtn.setOnAction(e -> showEdit(fe, content));
-            HBox toolbar = new HBox(editBtn);
-            toolbar.setAlignment(Pos.CENTER_RIGHT);
-            rightPanel.getChildren().addAll(toolbar, sp);
+    private void onEdit(FileListPanel.FileEntry fileEntry, String content) {
+        JsonEditor.showEdit(rightPanel, fileEntry, content, () -> onFileSelected(fileEntry));
+    }
+
+    private void onDelete(FileListPanel.FileEntry fileEntry) {
+        String baseName = fileEntry.name().replace(".json", "");
+
+        if (baseName.endsWith("Driveway")) {
+            DrivewayStore.delete(baseName.replace("Driveway", ""));
         } else {
-            rightPanel.getChildren().add(sp);
+            SimulationStore.delete(baseName);
+            DrivewayStore.delete(baseName);
         }
+
+        selectedEntry = null;
+        fileListPanel.rebuild();
+        showEmptyState();
     }
 
-    private void showEdit(FileEntry fe, String content) {
-        rightPanel.getChildren().clear();
-        String pretty = prettify(content);
+    private void promptNewFile(boolean copyDefault) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle(copyDefault ? "Copy Default Simulation" : "New Simulation");
+        dialog.setHeaderText(null);
+        dialog.setContentText("Simulation name:");
 
-        TextArea editor = new TextArea(pretty);
-        editor.setStyle("-fx-control-inner-background: #1e1e1e; -fx-text-fill: #d4d4d4; " +
-                "-fx-font-family: Consolas; -fx-font-size: 13px;");
-        VBox.setVgrow(editor, Priority.ALWAYS);
-
-        Button saveBtn = new Button("Save");
-        Button cancelBtn = new Button("Cancel");
-        cancelBtn.setOnAction(e -> showView(fe));
-
-        saveBtn.setOnAction(e -> {
-            String text = editor.getText();
-            try {
-                mapper.readTree(text);
-                String formatted = mapper.writerWithDefaultPrettyPrinter()
-                        .writeValueAsString(mapper.readTree(text));
-                Files.writeString(Path.of(fe.path), formatted);
-                showView(fe);
-            } catch (Exception ex) {
-                Alert alert = new Alert(Alert.AlertType.ERROR, "Invalid JSON: " + ex.getMessage());
-                alert.showAndWait();
+        dialog.showAndWait().ifPresent(inputName -> {
+            if (inputName.isBlank()) {
+                return;
             }
+
+            String sanitizedName = inputName.replaceAll(SANITIZE_PATTERN, "");
+
+            if (sanitizedName.isBlank() || SimulationStore.exists(sanitizedName)) {
+                return;
+            }
+
+            if (copyDefault) {
+                var defaultData = SimulationStore.load("Default");
+                if (defaultData != null) {
+                    SimulationStore.save(sanitizedName, defaultData);
+                }
+            } else {
+                SimulationStore.save(sanitizedName, new java.util.LinkedHashMap<>());
+            }
+
+            DrivewayStore.createFromDefault(sanitizedName);
+            fileListPanel.rebuild();
         });
-
-        HBox toolbar = new HBox(8, saveBtn, cancelBtn);
-        toolbar.setAlignment(Pos.CENTER_RIGHT);
-        rightPanel.getChildren().addAll(toolbar, editor);
-    }
-
-    private String prettify(String json) {
-        try {
-            Object obj = mapper.readValue(json, Object.class);
-            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
-        } catch (Exception e) { return json; }
     }
 }

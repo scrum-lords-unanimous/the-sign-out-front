@@ -12,54 +12,74 @@ import java.util.List;
 
 public class ObjLoader {
 
+    private static final int VERTEX_INDEX = 0;
+    private static final int TEXTURE_INDEX = 1;
+
     public static MeshView load(String resourcePath) {
         TriangleMesh mesh = new TriangleMesh();
-        List<float[]> verts = new ArrayList<>();
-        List<float[]> texCoords = new ArrayList<>();
-        List<int[]> faces = new ArrayList<>();
+        List<float[]> vertices = new ArrayList<>();
+        List<float[]> textureCoordinates = new ArrayList<>();
+        List<int[]> faceIndices = new ArrayList<>();
 
-        try (InputStream in = ObjLoader.class.getResourceAsStream(resourcePath);
-             BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
+        try (InputStream inputStream = ObjLoader.class.getResourceAsStream(resourcePath);
+             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
             String line;
-            while ((line = br.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 line = line.trim();
                 if (line.startsWith("v ")) {
-                    String[] p = line.split("\\s+");
-                    verts.add(new float[]{Float.parseFloat(p[1]), Float.parseFloat(p[2]), Float.parseFloat(p[3])});
+                    String[] parts = line.split("\\s+");
+                    vertices.add(new float[]{
+                        Float.parseFloat(parts[1]),
+                        Float.parseFloat(parts[2]),
+                        Float.parseFloat(parts[3])
+                    });
                 } else if (line.startsWith("vt ")) {
-                    String[] p = line.split("\\s+");
-                    texCoords.add(new float[]{Float.parseFloat(p[1]), Float.parseFloat(p[2])});
+                    String[] parts = line.split("\\s+");
+                    textureCoordinates.add(new float[]{
+                        Float.parseFloat(parts[1]),
+                        Float.parseFloat(parts[2])
+                    });
                 } else if (line.startsWith("f ")) {
-                    String[] p = line.split("\\s+");
-                    int[][] faceVerts = new int[p.length - 1][2];
-                    for (int i = 1; i < p.length; i++) {
-                        String[] parts = p[i].split("/");
-                        faceVerts[i - 1][0] = Integer.parseInt(parts[0]) - 1;
-                        faceVerts[i - 1][1] = parts.length > 1 && !parts[1].isEmpty()
-                                ? Integer.parseInt(parts[1]) - 1 : 0;
+                    String[] parts = line.split("\\s+");
+                    int[][] faceVertices = new int[parts.length - 1][2];
+                    for (int partIndex = 1; partIndex < parts.length; partIndex++) {
+                        String[] indexComponents = parts[partIndex].split("/");
+                        faceVertices[partIndex - 1][VERTEX_INDEX] = Integer.parseInt(indexComponents[0]) - 1;
+                        faceVertices[partIndex - 1][TEXTURE_INDEX] =
+                            indexComponents.length > 1 && !indexComponents[1].isEmpty()
+                                ? Integer.parseInt(indexComponents[1]) - 1
+                                : 0;
                     }
-                    for (int i = 1; i < faceVerts.length - 1; i++) {
-                        faces.add(new int[]{
-                                faceVerts[0][0], faceVerts[0][1],
-                                faceVerts[i][0], faceVerts[i][1],
-                                faceVerts[i + 1][0], faceVerts[i + 1][1]
+                    for (int triangleIndex = 1; triangleIndex < faceVertices.length - 1; triangleIndex++) {
+                        faceIndices.add(new int[]{
+                            faceVertices[0][VERTEX_INDEX], faceVertices[0][TEXTURE_INDEX],
+                            faceVertices[triangleIndex][VERTEX_INDEX], faceVertices[triangleIndex][TEXTURE_INDEX],
+                            faceVertices[triangleIndex + 1][VERTEX_INDEX], faceVertices[triangleIndex + 1][TEXTURE_INDEX]
                         });
                     }
                 }
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load OBJ: " + resourcePath, e);
+        } catch (Exception exception) {
+            throw new RuntimeException("Failed to load OBJ: " + resourcePath, exception);
         }
 
-        for (float[] v : verts) mesh.getPoints().addAll(v[0], v[1], v[2]);
-        if (texCoords.isEmpty()) texCoords.add(new float[]{0, 0});
-        for (float[] t : texCoords) mesh.getTexCoords().addAll(t[0], t[1]);
-        for (int[] f : faces) mesh.getFaces().addAll(f);
+        for (float[] vertex : vertices) {
+            mesh.getPoints().addAll(vertex[0], vertex[1], vertex[2]);
+        }
+        if (textureCoordinates.isEmpty()) {
+            textureCoordinates.add(new float[]{0, 0});
+        }
+        for (float[] texCoord : textureCoordinates) {
+            mesh.getTexCoords().addAll(texCoord[0], texCoord[1]);
+        }
+        for (int[] face : faceIndices) {
+            mesh.getFaces().addAll(face);
+        }
 
-        MeshView view = new MeshView(mesh);
-        PhongMaterial mat = new PhongMaterial(Color.RED);
-        mat.setSpecularColor(Color.WHITE);
-        view.setMaterial(mat);
-        return view;
+        MeshView meshView = new MeshView(mesh);
+        PhongMaterial material = new PhongMaterial(Color.RED);
+        material.setSpecularColor(Color.WHITE);
+        meshView.setMaterial(material);
+        return meshView;
     }
 }

@@ -48,6 +48,7 @@ private void executeStep(Map<String, Object> step) {
     switch ((String) step.get("type")) {
 	case "for" -> executeFor(step);
 	case "for-each" -> executeForEach(step);
+	case "while" -> executeWhile(step);
 	case "if" -> executeIf(step);
 	case "set" -> executeSet(step);
 	case "print" -> System.out.println(resolve(step.get("value")));
@@ -82,6 +83,13 @@ private void executeForEach(Map<String, Object> step) {
 	executeSteps(steps);
     }
     currentRefs.remove(as);
+}
+
+private void executeWhile(Map<String, Object> step) {
+    List<Map<String, Object>> steps = (List<Map<String, Object>>) step.get("steps");
+    while (evaluateCondition(step.get("condition"))) {
+	executeSteps(steps);
+    }
 }
 
 private void executeIf(Map<String, Object> step) {

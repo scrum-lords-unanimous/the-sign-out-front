@@ -1,6 +1,20 @@
+/* ── Root-level custom variables (light mode defaults) ── */
+.root {
+    -divider-color: #e5e5e5;
+    -json-key-color: #0451a5;
+    -json-string-color: #0f7533;
+    -json-number-color: #b5200d;
+    -json-bool-color: #af00db;
+    -json-struct-color: #616161;
+    -json-editor-bg: #f9f9f9;
+    -json-editor-text: #1a1a1a;
+    -json-editor-selection: #add6ff;
+    -json-editor-caret: #1a1a1a;
+}
+
 .sidebar {
     -fx-background-color: -fx-background;
-    -fx-padding: 16 8 8 8;
+    -fx-padding: 8 8 8 8;
 }
 
 .sidebar .button {
@@ -10,17 +24,17 @@
 }
 
 .sidebar .button:hover {
-    -fx-background-color: #323232, #323232, #323232;
+    -fx-background-color: -ControlFillColorDefaultBrush, -ControlFillColorDefaultBrush, -ControlFillColorDefaultBrush;
 }
 
 .sidebar .button.active {
-    -fx-background-color: #323232, #323232, #323232;
+    -fx-background-color: -ControlFillColorDefaultBrush, -ControlFillColorDefaultBrush, -ControlFillColorDefaultBrush;
 }
 
 .sidebar-divider {
     -fx-min-height: 1;
     -fx-max-height: 1;
-    -fx-background-color: #404040;
+    -fx-background-color: -ControlElevationBorderBrush;
 }
 
 .nav-indicator {
@@ -94,7 +108,7 @@
 }
 
 .file-list-item {
-    -fx-padding: 6 12;
+    -fx-padding: 8 8 8 28;
     -fx-font-size: 13px;
 }
 
@@ -107,6 +121,113 @@
 }
 
 .json-viewer {
-    -fx-background-color: #1e1e1e;
-    -fx-background: #1e1e1e;
+    -fx-background-color: -ControlFillColorDefaultBrush;
+    -fx-background: -ControlFillColorDefaultBrush;
+    -fx-background-radius: 8;
+}
+
+.json-viewer > .viewport {
+    -fx-background-color: -ControlFillColorDefaultBrush;
+    -fx-background-radius: 8;
+}
+
+/* JSON syntax highlighting (light mode defaults, overridden in dark-theme.css) */
+.json-key { -fx-fill: -json-key-color; }
+.json-string { -fx-fill: -json-string-color; }
+.json-number { -fx-fill: -json-number-color; }
+.json-bool { -fx-fill: -json-bool-color; }
+.json-struct { -fx-fill: -json-struct-color; }
+
+/* ── Custom title bar ── */
+
+.custom-title-bar {
+    -fx-background-color: -fx-background;
+    -fx-padding: 0;
+}
+
+.title-bar-text {
+    -fx-font-size: 12px;
+}
+
+/* Base caption button — matches title bar background */
+/* .custom-title-bar prefix overrides dark-theme.css .button rules */
+.custom-title-bar .caption-button,
+.custom-title-bar .caption-button:focused {
+    -fx-font-family: 'Segoe Fluent Icons';
+    -fx-font-size: 10px;
+    -fx-min-width: 46;
+    -fx-max-width: 46;
+    -fx-min-height: 38;
+    -fx-max-height: 38;
+    -fx-background-color: -fx-background, -fx-background, -fx-background;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* Back button — 36px wide, rounded, 10px icon */
+.custom-title-bar .caption-button.back-button {
+    -fx-min-width: 36;
+    -fx-max-width: 36;
+    -fx-font-size: 10px;
+    -fx-background-radius: 6;
+}
+
+.custom-title-bar .caption-button.back-button:hover {
+    -fx-background-color: -ControlFillColorSecondaryBrush, -ControlFillColorSecondaryBrush, -ControlFillColorSecondaryBrush;
+    -fx-background-radius: 6;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+.custom-title-bar .caption-button.back-button:pressed {
+    -fx-background-color: -ControlFillColorTertiaryBrush, -ControlFillColorTertiaryBrush, -ControlFillColorTertiaryBrush;
+    -fx-background-radius: 6;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+/* Default hover (other caption buttons) */
+.custom-title-bar .caption-button:hover {
+    -fx-background-color: -ControlFillColorSecondaryBrush, -ControlFillColorSecondaryBrush, -ControlFillColorSecondaryBrush;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+.custom-title-bar .caption-button:pressed {
+    -fx-background-color: -ControlFillColorTertiaryBrush, -ControlFillColorTertiaryBrush, -ControlFillColorTertiaryBrush;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+/* Minimize / maximize hover — system accent colour */
+.custom-title-bar .caption-button.window-button:hover {
+    -fx-background-color: -AccentFillColorDefaultBrush;
+    -fx-text-fill: white;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+.custom-title-bar .caption-button.window-button:pressed {
+    -fx-background-color: -AccentFillColorSecondaryBrush;
+    -fx-text-fill: white;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+/* Close button — red */
+.custom-title-bar .caption-button.close-button:hover {
+    -fx-background-color: #c42b1c;
+    -fx-text-fill: white;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
+}
+
+.custom-title-bar .caption-button.close-button:pressed {
+    -fx-background-color: #b4271a;
+    -fx-text-fill: white;
+    -fx-border-width: 0;
+    -fx-border-color: transparent;
 }

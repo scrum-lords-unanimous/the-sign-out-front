@@ -19,36 +19,47 @@ import java.util.*;
 public class NodeCanvas extends Pane {
 
     private static final String[] STEP_TYPES = {
-        "print", "set", "spawn", "for", "for-each", "if",
+        "print", "set", "spawn", "for", "for-each", "while", "if",
         "precompute-driveway", "record-slide-view", "slide-report"
     };
 
     private static final double MIN_ZOOM = 0.2;
     private static final double MAX_ZOOM = 3.0;
     private static final double GRID_SPACING = 25;
+    private static final double GRID_CANVAS_SIZE = 4000;
+    private static final double GRID_DOT_RADIUS = 1;
+    private static final double GRID_DOT_DIAMETER = 2;
+    private static final double GRID_DOT_OPACITY = 0.25;
+    private static final double ZOOM_STEP_FACTOR = 1.1;
+    private static final double PORT_HIT_RADIUS = 12;
+    private static final double TEMP_CURVE_STROKE_WIDTH = 2;
+    private static final double TEMP_CURVE_DASH_LENGTH = 8.0;
+    private static final double TEMP_CURVE_GAP_LENGTH = 4.0;
+    private static final double BEZIER_TANGENT_OFFSET = 80;
 
     private final Group canvasGroup;
     private final Canvas gridCanvas;
     private final Pane connectionsLayer;
     private final Pane nodesLayer;
-    private final CubicCurve tempCurve;
+    private final CubicCurve temporaryCurve;
 
     private final List<NodeBox> nodeBoxes = new ArrayList<>();
     private final List<NodeConnection> connections = new ArrayList<>();
 
     private double zoomScale = 1.0;
 
-    // Pan state
-    private double panAnchorX, panAnchorY;
-    private double panTranslateX, panTranslateY;
+    private double panAnchorX;
+    private double panAnchorY;
+    private double panTranslateStartX;
+    private double panTranslateStartY;
     private boolean isPanning = false;
 
-    // Node drag state
-    private double dragAnchorX, dragAnchorY;
-    private double dragNodeStartX, dragNodeStartY;
+    private double dragAnchorX;
+    private double dragAnchorY;
+    private double dragNodeStartX;
+    private double dragNodeStartY;
     private NodeBox draggingNode = null;
 
-    // Connection drag state
     private NodePort dragSourcePort = null;
 
     private Runnable onChange;
@@ -56,14 +67,12 @@ public class NodeCanvas extends Pane {
     public NodeCanvas() {
         getStyleClass().add("node-canvas");
 
-        // Clip to bounds
-        Rectangle clip = new Rectangle();
-        clip.widthProperty().bind(widthProperty());
-        clip.heightProperty().bind(heightProperty());
-        setClip(clip);
+        Rectangle clipRect = new Rectangle();
+        clipRect.widthProperty().bind(widthProperty());
+        clipRect.heightProperty().bind(heightProperty());
+        setClip(clipRect);
 
-        // Scene graph
-        gridCanvas = new Canvas(4000, 4000);
+        gridCanvas = new Canvas(GRID_CANVAS_SIZE, GRID_CANVAS_SIZE);
         gridCanvas.setMouseTransparent(true);
 
         connectionsLayer = new Pane();
@@ -73,20 +82,19 @@ public class NodeCanvas extends Pane {
         nodesLayer = new Pane();
         nodesLayer.setPickOnBounds(false);
 
-        tempCurve = new CubicCurve();
-        tempCurve.setFill(null);
-        tempCurve.setStroke(Color.web("#808080"));
-        tempCurve.setStrokeWidth(2);
-        tempCurve.getStrokeDashArray().addAll(8.0, 4.0);
-        tempCurve.setVisible(false);
-        tempCurve.setMouseTransparent(true);
+        temporaryCurve = new CubicCurve();
+        temporaryCurve.setFill(null);
+        temporaryCurve.setStroke(Color.web("#808080"));
+        temporaryCurve.setStrokeWidth(TEMP_CURVE_STROKE_WIDTH);
+        temporaryCurve.getStrokeDashArray().addAll(TEMP_CURVE_DASH_LENGTH, TEMP_CURVE_GAP_LENGTH);
+        temporaryCurve.setVisible(false);
+        temporaryCurve.setMouseTransparent(true);
 
-        canvasGroup = new Group(gridCanvas, connectionsLayer, nodesLayer, tempCurve);
+        canvasGroup = new Group(gridCanvas, connectionsLayer, nodesLayer, temporaryCurve);
         getChildren().add(canvasGroup);
 
         drawGrid();
 
-        // Event handlers
         setOnScroll(this::handleScroll);
         setOnMousePressed(this::handleMousePressed);
         setOnMouseDragged(this::handleMouseDragged);
@@ -97,31 +105,35 @@ public class NodeCanvas extends Pane {
         this.onChange = onChange;
     }
 
-    // --- Grid ---
     private void drawGrid() {
-        GraphicsContext gc = gridCanvas.getGraphicsContext2D();
-        double w = gridCanvas.getWidth();
-        double h = gridCanvas.getHeight();
+        GraphicsContext graphicsContext = gridCanvas.getGraphicsContext2D();
+        double canvasWidth = gridCanvas.getWidth();
+        double canvasHeight = gridCanvas.getHeight();
 
-        gc.clearRect(0, 0, w, h);
-        gc.setFill(Color.web("#808080", 0.25));
+        graphicsContext.clearRect(0, 0, canvasWidth, canvasHeight);
+        graphicsContext.setFill(Color.web("#808080", GRID_DOT_OPACITY));
 
-        for (double x = 0; x < w; x += GRID_SPACING) {
-            for (double y = 0; y < h; y += GRID_SPACING) {
-                gc.fillOval(x - 1, y - 1, 2, 2);
+        for (double dotX = 0; dotX < canvasWidth; dotX += GRID_SPACING) {
+            for (double dotY = 0; dotY < canvasHeight; dotY += GRID_SPACING) {
+                graphicsContext.fillOval(
+                    dotX - GRID_DOT_RADIUS,
+                    dotY - GRID_DOT_RADIUS,
+                    GRID_DOT_DIAMETER,
+                    GRID_DOT_DIAMETER
+                );
             }
         }
     }
 
-    // --- Zoom ---
-    private void handleScroll(ScrollEvent e) {
-        double factor = e.getDeltaY() > 0 ? 1.1 : 1 / 1.1;
-        double newScale = zoomScale * factor;
+    private void handleScroll(ScrollEvent scrollEvent) {
+        double zoomDirection = scrollEvent.getDeltaY() > 0 ? ZOOM_STEP_FACTOR : 1 / ZOOM_STEP_FACTOR;
+        double newScale = zoomScale * zoomDirection;
         newScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newScale));
 
-        // Zoom toward cursor
-        Point2D mouse = canvasGroup.sceneToLocal(e.getSceneX(), e.getSceneY());
-        if (mouse == null) return;
+        Point2D mouseInCanvas = canvasGroup.sceneToLocal(scrollEvent.getSceneX(), scrollEvent.getSceneY());
+        if (mouseInCanvas == null) {
+            return;
+        }
 
         double scaleFactor = newScale / zoomScale;
         zoomScale = newScale;
@@ -129,155 +141,153 @@ public class NodeCanvas extends Pane {
         canvasGroup.setScaleX(zoomScale);
         canvasGroup.setScaleY(zoomScale);
 
-        // Adjust translate so the point under cursor stays fixed
-        double dx = mouse.getX() * (scaleFactor - 1);
-        double dy = mouse.getY() * (scaleFactor - 1);
-        canvasGroup.setTranslateX(canvasGroup.getTranslateX() - dx * zoomScale);
-        canvasGroup.setTranslateY(canvasGroup.getTranslateY() - dy * zoomScale);
+        double translateDeltaX = mouseInCanvas.getX() * (scaleFactor - 1);
+        double translateDeltaY = mouseInCanvas.getY() * (scaleFactor - 1);
+        canvasGroup.setTranslateX(canvasGroup.getTranslateX() - translateDeltaX * zoomScale);
+        canvasGroup.setTranslateY(canvasGroup.getTranslateY() - translateDeltaY * zoomScale);
 
-        e.consume();
+        scrollEvent.consume();
     }
 
-    // --- Pan & Drag ---
-    private void handleMousePressed(MouseEvent e) {
-        // Middle-click or Ctrl+left-click: start pan
-        if (e.getButton() == MouseButton.MIDDLE ||
-            (e.getButton() == MouseButton.PRIMARY && e.isControlDown())) {
+    private void handleMousePressed(MouseEvent mouseEvent) {
+        if (mouseEvent.getButton() == MouseButton.MIDDLE ||
+            (mouseEvent.getButton() == MouseButton.PRIMARY && mouseEvent.isControlDown())) {
             isPanning = true;
-            panAnchorX = e.getSceneX();
-            panAnchorY = e.getSceneY();
-            panTranslateX = canvasGroup.getTranslateX();
-            panTranslateY = canvasGroup.getTranslateY();
-            e.consume();
+            panAnchorX = mouseEvent.getSceneX();
+            panAnchorY = mouseEvent.getSceneY();
+            panTranslateStartX = canvasGroup.getTranslateX();
+            panTranslateStartY = canvasGroup.getTranslateY();
+            mouseEvent.consume();
             return;
         }
 
-        if (e.getButton() != MouseButton.PRIMARY) return;
+        if (mouseEvent.getButton() != MouseButton.PRIMARY) {
+            return;
+        }
 
-        // Check if we hit a port
-        NodePort hitPort = findPortAt(e);
+        NodePort hitPort = findPortAt(mouseEvent);
         if (hitPort != null && hitPort.getDirection() == NodePort.Direction.OUTPUT) {
-            startConnectionDrag(hitPort, e);
-            e.consume();
+            startConnectionDrag(hitPort, mouseEvent);
+            mouseEvent.consume();
             return;
         }
 
-        // Check if we hit a node
-        NodeBox hitNode = findNodeAt(e);
+        NodeBox hitNode = findNodeAt(mouseEvent);
         if (hitNode != null) {
             draggingNode = hitNode;
-            Point2D local = canvasGroup.sceneToLocal(e.getSceneX(), e.getSceneY());
-            if (local != null) {
-                dragAnchorX = local.getX();
-                dragAnchorY = local.getY();
+            Point2D localPosition = canvasGroup.sceneToLocal(mouseEvent.getSceneX(), mouseEvent.getSceneY());
+            if (localPosition != null) {
+                dragAnchorX = localPosition.getX();
+                dragAnchorY = localPosition.getY();
                 dragNodeStartX = hitNode.getLayoutX();
                 dragNodeStartY = hitNode.getLayoutY();
             }
             hitNode.toFront();
-            e.consume();
+            mouseEvent.consume();
         }
     }
 
-    private void handleMouseDragged(MouseEvent e) {
+    private void handleMouseDragged(MouseEvent mouseEvent) {
         if (isPanning) {
-            double dx = e.getSceneX() - panAnchorX;
-            double dy = e.getSceneY() - panAnchorY;
-            canvasGroup.setTranslateX(panTranslateX + dx);
-            canvasGroup.setTranslateY(panTranslateY + dy);
-            e.consume();
+            double deltaX = mouseEvent.getSceneX() - panAnchorX;
+            double deltaY = mouseEvent.getSceneY() - panAnchorY;
+            canvasGroup.setTranslateX(panTranslateStartX + deltaX);
+            canvasGroup.setTranslateY(panTranslateStartY + deltaY);
+            mouseEvent.consume();
             return;
         }
 
         if (dragSourcePort != null) {
-            updateConnectionDrag(e);
-            e.consume();
+            updateConnectionDrag(mouseEvent);
+            mouseEvent.consume();
             return;
         }
 
         if (draggingNode != null) {
-            Point2D local = canvasGroup.sceneToLocal(e.getSceneX(), e.getSceneY());
-            if (local != null) {
-                double dx = local.getX() - dragAnchorX;
-                double dy = local.getY() - dragAnchorY;
-                draggingNode.setLayoutX(dragNodeStartX + dx);
-                draggingNode.setLayoutY(dragNodeStartY + dy);
+            Point2D localPosition = canvasGroup.sceneToLocal(mouseEvent.getSceneX(), mouseEvent.getSceneY());
+            if (localPosition != null) {
+                double deltaX = localPosition.getX() - dragAnchorX;
+                double deltaY = localPosition.getY() - dragAnchorY;
+                draggingNode.setLayoutX(dragNodeStartX + deltaX);
+                draggingNode.setLayoutY(dragNodeStartY + deltaY);
             }
-            e.consume();
+            mouseEvent.consume();
         }
     }
 
-    private void handleMouseReleased(MouseEvent e) {
+    private void handleMouseReleased(MouseEvent mouseEvent) {
         if (isPanning) {
             isPanning = false;
-            e.consume();
+            mouseEvent.consume();
             return;
         }
 
         if (dragSourcePort != null) {
-            finishConnectionDrag(e);
-            e.consume();
+            finishConnectionDrag(mouseEvent);
+            mouseEvent.consume();
             return;
         }
 
         if (draggingNode != null) {
-            // Save position back to model
             draggingNode.getModel().setNodeX(draggingNode.getLayoutX());
             draggingNode.getModel().setNodeY(draggingNode.getLayoutY());
             draggingNode = null;
-            if (onChange != null) onChange.run();
-            e.consume();
+            if (onChange != null) {
+                onChange.run();
+            }
+            mouseEvent.consume();
         }
     }
 
-    // --- Connection Drag ---
-    private void startConnectionDrag(NodePort port, MouseEvent e) {
+    private void startConnectionDrag(NodePort port, MouseEvent mouseEvent) {
         dragSourcePort = port;
 
-        // Remove existing connection from this output port
         if (port.isConnected()) {
             removeConnection(port.getConnection());
         }
 
-        Point2D srcScene = port.getCenterInScene();
-        Point2D srcLocal = canvasGroup.sceneToLocal(srcScene);
-        if (srcLocal == null) return;
+        Point2D sourceScenePosition = port.getCenterInScene();
+        Point2D sourceLocalPosition = canvasGroup.sceneToLocal(sourceScenePosition);
+        if (sourceLocalPosition == null) {
+            return;
+        }
 
-        tempCurve.setStartX(srcLocal.getX());
-        tempCurve.setStartY(srcLocal.getY());
-        tempCurve.setEndX(srcLocal.getX());
-        tempCurve.setEndY(srcLocal.getY());
-        tempCurve.setControlX1(srcLocal.getX());
-        tempCurve.setControlY1(srcLocal.getY());
-        tempCurve.setControlX2(srcLocal.getX());
-        tempCurve.setControlY2(srcLocal.getY());
-        tempCurve.setVisible(true);
+        temporaryCurve.setStartX(sourceLocalPosition.getX());
+        temporaryCurve.setStartY(sourceLocalPosition.getY());
+        temporaryCurve.setEndX(sourceLocalPosition.getX());
+        temporaryCurve.setEndY(sourceLocalPosition.getY());
+        temporaryCurve.setControlX1(sourceLocalPosition.getX());
+        temporaryCurve.setControlY1(sourceLocalPosition.getY());
+        temporaryCurve.setControlX2(sourceLocalPosition.getX());
+        temporaryCurve.setControlY2(sourceLocalPosition.getY());
+        temporaryCurve.setVisible(true);
     }
 
-    private void updateConnectionDrag(MouseEvent e) {
-        Point2D local = canvasGroup.sceneToLocal(e.getSceneX(), e.getSceneY());
-        if (local == null) return;
+    private void updateConnectionDrag(MouseEvent mouseEvent) {
+        Point2D mouseLocalPosition = canvasGroup.sceneToLocal(mouseEvent.getSceneX(), mouseEvent.getSceneY());
+        if (mouseLocalPosition == null) {
+            return;
+        }
 
-        tempCurve.setEndX(local.getX());
-        tempCurve.setEndY(local.getY());
-        tempCurve.setControlX1(tempCurve.getStartX() + 80);
-        tempCurve.setControlY1(tempCurve.getStartY());
-        tempCurve.setControlX2(local.getX() - 80);
-        tempCurve.setControlY2(local.getY());
+        temporaryCurve.setEndX(mouseLocalPosition.getX());
+        temporaryCurve.setEndY(mouseLocalPosition.getY());
+        temporaryCurve.setControlX1(temporaryCurve.getStartX() + BEZIER_TANGENT_OFFSET);
+        temporaryCurve.setControlY1(temporaryCurve.getStartY());
+        temporaryCurve.setControlX2(mouseLocalPosition.getX() - BEZIER_TANGENT_OFFSET);
+        temporaryCurve.setControlY2(mouseLocalPosition.getY());
     }
 
-    private void finishConnectionDrag(MouseEvent e) {
-        tempCurve.setVisible(false);
+    private void finishConnectionDrag(MouseEvent mouseEvent) {
+        temporaryCurve.setVisible(false);
 
-        NodePort targetPort = findPortAt(e);
+        NodePort targetPort = findPortAt(mouseEvent);
         if (targetPort != null
                 && targetPort.getDirection() == NodePort.Direction.INPUT
                 && targetPort != dragSourcePort) {
 
-            // Verify we're not connecting a node to itself
             NodeBox sourceBox = findOwnerBox(dragSourcePort);
             NodeBox targetBox = findOwnerBox(targetPort);
             if (sourceBox != targetBox) {
-                // Remove existing connection on the target input
                 if (targetPort.isConnected()) {
                     removeConnection(targetPort.getConnection());
                 }
@@ -288,35 +298,36 @@ public class NodeCanvas extends Pane {
         dragSourcePort = null;
     }
 
-    // --- Connection Management ---
-    public void createConnection(NodePort source, NodePort target) {
-        NodeConnection conn = new NodeConnection(source, target, canvasGroup);
-        source.setConnection(conn);
-        target.setConnection(conn);
-        connections.add(conn);
-        connectionsLayer.getChildren().add(conn);
+    public void createConnection(NodePort sourcePort, NodePort targetPort) {
+        NodeConnection connection = new NodeConnection(sourcePort, targetPort, canvasGroup);
+        sourcePort.setConnection(connection);
+        targetPort.setConnection(connection);
+        connections.add(connection);
+        connectionsLayer.getChildren().add(connection);
 
-        // Right-click to delete
-        conn.setOnContextMenuRequested(ce -> {
-            ContextMenu ctx = new ContextMenu();
+        connection.setOnContextMenuRequested(contextEvent -> {
+            ContextMenu contextMenu = new ContextMenu();
             MenuItem deleteItem = new MenuItem("Delete Connection");
-            deleteItem.setOnAction(ae -> removeConnection(conn));
-            ctx.getItems().add(deleteItem);
-            ctx.show(conn, ce.getScreenX(), ce.getScreenY());
-            ce.consume();
+            deleteItem.setOnAction(actionEvent -> removeConnection(connection));
+            contextMenu.getItems().add(deleteItem);
+            contextMenu.show(connection, contextEvent.getScreenX(), contextEvent.getScreenY());
+            contextEvent.consume();
         });
 
-        if (onChange != null) onChange.run();
+        if (onChange != null) {
+            onChange.run();
+        }
     }
 
-    public void removeConnection(NodeConnection conn) {
-        conn.disconnect();
-        connections.remove(conn);
-        connectionsLayer.getChildren().remove(conn);
-        if (onChange != null) onChange.run();
+    public void removeConnection(NodeConnection connection) {
+        connection.disconnect();
+        connections.remove(connection);
+        connectionsLayer.getChildren().remove(connection);
+        if (onChange != null) {
+            onChange.run();
+        }
     }
 
-    // --- Node Management ---
     public NodeBox addNode(StepModel model) {
         NodeBox box = new NodeBox(model, onChange != null ? onChange : () -> {});
         box.setLayoutX(model.getNodeX());
@@ -324,83 +335,80 @@ public class NodeCanvas extends Pane {
         nodeBoxes.add(box);
         nodesLayer.getChildren().add(box);
 
-        // Setup port drag handlers
         for (NodePort port : box.getAllPorts()) {
             setupPortHandlers(port);
         }
 
-        // Right-click to delete node
-        box.setOnContextMenuRequested(ce -> {
-            ContextMenu ctx = new ContextMenu();
+        box.setOnContextMenuRequested(contextEvent -> {
+            ContextMenu contextMenu = new ContextMenu();
             MenuItem deleteItem = new MenuItem("Delete Node");
-            deleteItem.setOnAction(ae -> removeNode(box));
-            ctx.getItems().add(deleteItem);
-            ctx.show(box, ce.getScreenX(), ce.getScreenY());
-            ce.consume();
+            deleteItem.setOnAction(actionEvent -> removeNode(box));
+            contextMenu.getItems().add(deleteItem);
+            contextMenu.show(box, contextEvent.getScreenX(), contextEvent.getScreenY());
+            contextEvent.consume();
         });
 
         return box;
     }
 
     private void setupPortHandlers(NodePort port) {
-        port.setOnMousePressed(e -> {
-            if (e.getButton() == MouseButton.PRIMARY && port.getDirection() == NodePort.Direction.OUTPUT) {
-                startConnectionDrag(port, e);
-                e.consume();
+        port.setOnMousePressed(mouseEvent -> {
+            if (mouseEvent.getButton() == MouseButton.PRIMARY && port.getDirection() == NodePort.Direction.OUTPUT) {
+                startConnectionDrag(port, mouseEvent);
+                mouseEvent.consume();
             }
         });
-        port.setOnMouseDragged(e -> {
+        port.setOnMouseDragged(mouseEvent -> {
             if (dragSourcePort != null) {
-                updateConnectionDrag(e);
-                e.consume();
+                updateConnectionDrag(mouseEvent);
+                mouseEvent.consume();
             }
         });
-        port.setOnMouseReleased(e -> {
+        port.setOnMouseReleased(mouseEvent -> {
             if (dragSourcePort != null) {
-                finishConnectionDrag(e);
-                e.consume();
+                finishConnectionDrag(mouseEvent);
+                mouseEvent.consume();
             }
         });
     }
 
     public void removeNode(NodeBox box) {
-        // Remove all connections attached to this node
-        List<NodeConnection> toRemove = new ArrayList<>();
+        List<NodeConnection> connectionsFromPorts = new ArrayList<>();
         for (NodePort port : box.getAllPorts()) {
             if (port.isConnected()) {
-                toRemove.add(port.getConnection());
+                connectionsFromPorts.add(port.getConnection());
             }
         }
-        for (NodeConnection conn : toRemove) {
-            removeConnection(conn);
+        for (NodeConnection connection : connectionsFromPorts) {
+            removeConnection(connection);
         }
 
-        // Also remove connections where this node is the target
-        List<NodeConnection> incoming = new ArrayList<>();
-        for (NodeConnection conn : connections) {
-            if (findOwnerBox(conn.getTarget()) == box || findOwnerBox(conn.getSource()) == box) {
-                incoming.add(conn);
+        List<NodeConnection> connectionsToBox = new ArrayList<>();
+        for (NodeConnection connection : connections) {
+            if (findOwnerBox(connection.getTarget()) == box || findOwnerBox(connection.getSource()) == box) {
+                connectionsToBox.add(connection);
             }
         }
-        for (NodeConnection conn : incoming) {
-            removeConnection(conn);
+        for (NodeConnection connection : connectionsToBox) {
+            removeConnection(connection);
         }
 
         nodeBoxes.remove(box);
         nodesLayer.getChildren().remove(box);
-        if (onChange != null) onChange.run();
+        if (onChange != null) {
+            onChange.run();
+        }
     }
 
     public void clear() {
-        for (NodeConnection conn : new ArrayList<>(connections)) {
-            conn.disconnect();
+        for (NodeConnection connection : new ArrayList<>(connections)) {
+            connection.disconnect();
         }
         connections.clear();
         connectionsLayer.getChildren().clear();
         nodeBoxes.clear();
         nodesLayer.getChildren().clear();
 
-        // Reset pan/zoom
         canvasGroup.setTranslateX(0);
         canvasGroup.setTranslateY(0);
         zoomScale = 1.0;
@@ -408,13 +416,12 @@ public class NodeCanvas extends Pane {
         canvasGroup.setScaleY(1.0);
     }
 
-    // --- Hit Testing ---
-    private NodePort findPortAt(MouseEvent e) {
+    private NodePort findPortAt(MouseEvent mouseEvent) {
         for (NodeBox box : nodeBoxes) {
             for (NodePort port : box.getAllPorts()) {
-                Point2D portScene = port.getCenterInScene();
-                double dist = portScene.distance(e.getSceneX(), e.getSceneY());
-                if (dist < 12) {
+                Point2D portScenePosition = port.getCenterInScene();
+                double distanceToMouse = portScenePosition.distance(mouseEvent.getSceneX(), mouseEvent.getSceneY());
+                if (distanceToMouse < PORT_HIT_RADIUS) {
                     return port;
                 }
             }
@@ -422,14 +429,15 @@ public class NodeCanvas extends Pane {
         return null;
     }
 
-    private NodeBox findNodeAt(MouseEvent e) {
-        Point2D local = canvasGroup.sceneToLocal(e.getSceneX(), e.getSceneY());
-        if (local == null) return null;
+    private NodeBox findNodeAt(MouseEvent mouseEvent) {
+        Point2D localPosition = canvasGroup.sceneToLocal(mouseEvent.getSceneX(), mouseEvent.getSceneY());
+        if (localPosition == null) {
+            return null;
+        }
 
-        // Iterate in reverse order (topmost first)
-        for (int i = nodeBoxes.size() - 1; i >= 0; i--) {
-            NodeBox box = nodeBoxes.get(i);
-            if (box.getBoundsInParent().contains(local)) {
+        for (int index = nodeBoxes.size() - 1; index >= 0; index--) {
+            NodeBox box = nodeBoxes.get(index);
+            if (box.getBoundsInParent().contains(localPosition)) {
                 return box;
             }
         }
@@ -437,407 +445,60 @@ public class NodeCanvas extends Pane {
     }
 
     private NodeBox findOwnerBox(NodePort port) {
-        javafx.scene.Node current = port;
-        while (current != null) {
-            if (current instanceof NodeBox) return (NodeBox) current;
-            current = current.getParent();
+        javafx.scene.Node currentNode = port;
+        while (currentNode != null) {
+            if (currentNode instanceof NodeBox) {
+                return (NodeBox) currentNode;
+            }
+            currentNode = currentNode.getParent();
         }
         return null;
     }
 
-    // --- Add Step via Menu ---
     public void showAddStepMenu(javafx.scene.Node anchor) {
         ContextMenu menu = new ContextMenu();
-        for (String type : STEP_TYPES) {
-            MenuItem item = new MenuItem(type);
-            item.setOnAction(e -> {
-                StepModel model = new StepModel(type);
-                initDefaults(model);
+        for (String stepType : STEP_TYPES) {
+            MenuItem menuItem = new MenuItem(stepType);
+            menuItem.setOnAction(actionEvent -> {
+                StepModel model = new StepModel(stepType);
+                StepDefaults.initDefaults(model);
 
-                // Place at viewport center
-                Point2D center = canvasGroup.sceneToLocal(
-                        getWidth() / 2 + localToScene(0, 0).getX(),
-                        getHeight() / 2 + localToScene(0, 0).getY());
-                if (center != null) {
-                    model.setNodeX(center.getX());
-                    model.setNodeY(center.getY());
+                Point2D canvasCenter = canvasGroup.sceneToLocal(
+                    getWidth() / 2 + localToScene(0, 0).getX(),
+                    getHeight() / 2 + localToScene(0, 0).getY()
+                );
+                if (canvasCenter != null) {
+                    model.setNodeX(canvasCenter.getX());
+                    model.setNodeY(canvasCenter.getY());
                 }
 
                 addNode(model);
-                if (onChange != null) onChange.run();
+                if (onChange != null) {
+                    onChange.run();
+                }
             });
-            menu.getItems().add(item);
+            menu.getItems().add(menuItem);
         }
         menu.show(anchor, javafx.geometry.Side.BOTTOM, 0, 0);
     }
 
-    private static void initDefaults(StepModel step) {
-        switch (step.getType()) {
-            case "for":
-                step.setProperty("var", "i");
-                step.setProperty("from", 0);
-                step.setProperty("to", 10);
-                step.setProperty("step", 1);
-                break;
-            case "for-each":
-                step.setProperty("collection", "");
-                step.setProperty("as", "item");
-                break;
-            case "if":
-                Map<String, Object> cond = new LinkedHashMap<>();
-                List<Object> args = new ArrayList<>();
-                args.add("a");
-                args.add("b");
-                cond.put("=", args);
-                step.setProperty("condition", cond);
-                break;
-            case "set":
-                step.setProperty("target", "");
-                step.setProperty("value", "");
-                break;
-            case "print":
-                step.setProperty("value", "");
-                break;
-            case "spawn":
-                step.setProperty("count", "1");
-                step.setProperty("as", "");
-                break;
-        }
-    }
-
-    // --- Serialization: Graph -> Tree ---
-
-    /**
-     * Builds the step tree from the current graph for saving.
-     * Returns the top-level steps list.
-     */
     public List<StepModel> buildStepTree() {
-        // Find root nodes: nodes whose EXEC_IN port has no incoming connection
-        List<NodeBox> roots = new ArrayList<>();
-        for (NodeBox box : nodeBoxes) {
-            if (!box.getExecIn().isConnected()) {
-                roots.add(box);
-            }
-        }
-
-        // If there are multiple roots, find the one that starts a chain
-        // Sort roots by Y position (top to bottom)
-        roots.sort(Comparator.comparingDouble(NodeBox::getLayoutY));
-
-        List<StepModel> topLevel = new ArrayList<>();
-        Set<NodeBox> visited = new HashSet<>();
-
-        for (NodeBox root : roots) {
-            if (!visited.contains(root)) {
-                buildChain(root, topLevel, visited);
-            }
-        }
-
-        return topLevel;
+        return GraphSerializer.buildStepTree(nodeBoxes, connections);
     }
 
-    private void buildChain(NodeBox current, List<StepModel> chain, Set<NodeBox> visited) {
-        if (current == null || visited.contains(current)) return;
-        visited.add(current);
-
-        StepModel model = current.getModel();
-
-        // Clear children so we rebuild from graph
-        model.getChildren().clear();
-        model.getElseChildren().clear();
-
-        // Handle container children
-        if (current.getLoopBodyPort() != null && current.getLoopBodyPort().isConnected()) {
-            NodeBox bodyFirst = findConnectedInputBox(current.getLoopBodyPort());
-            if (bodyFirst != null) {
-                buildChain(bodyFirst, model.getChildren(), visited);
-            }
-        }
-        if (current.getThenPort() != null && current.getThenPort().isConnected()) {
-            NodeBox thenFirst = findConnectedInputBox(current.getThenPort());
-            if (thenFirst != null) {
-                buildChain(thenFirst, model.getChildren(), visited);
-            }
-        }
-        if (current.getElsePort() != null && current.getElsePort().isConnected()) {
-            NodeBox elseFirst = findConnectedInputBox(current.getElsePort());
-            if (elseFirst != null) {
-                buildChain(elseFirst, model.getElseChildren(), visited);
-            }
-        }
-
-        chain.add(model);
-
-        // Follow EXEC_OUT to next step
-        if (current.getExecOut() != null && current.getExecOut().isConnected()) {
-            NodeBox next = findConnectedInputBox(current.getExecOut());
-            buildChain(next, chain, visited);
-        }
-    }
-
-    private NodeBox findConnectedInputBox(NodePort outputPort) {
-        if (!outputPort.isConnected()) return null;
-        NodeConnection conn = outputPort.getConnection();
-        return findOwnerBox(conn.getTarget());
-    }
-
-    /**
-     * Builds a layout map: id -> {x, y}
-     */
     public Map<String, Map<String, Double>> buildLayoutMap() {
-        Map<String, Map<String, Double>> layout = new LinkedHashMap<>();
-        for (NodeBox box : nodeBoxes) {
-            Map<String, Double> pos = new LinkedHashMap<>();
-            pos.put("x", box.getLayoutX());
-            pos.put("y", box.getLayoutY());
-            layout.put(box.getModel().getId(), pos);
-        }
-        return layout;
+        return GraphSerializer.buildLayoutMap(nodeBoxes);
     }
 
-    // --- Deserialization: Tree -> Graph ---
-
-    /**
-     * Loads a simulation from JSON data, creating nodes and connections.
-     */
-    @SuppressWarnings("unchecked")
-    public void loadFromJson(Map<String, Object> simData) {
-        clear();
-
-        List<StepModel> treeSteps = StepModel.fromJsonSteps(simData);
-        if (treeSteps.isEmpty()) return;
-
-        // Read layout map
-        Map<String, Map<String, Double>> layoutMap = new LinkedHashMap<>();
-        Object layoutObj = simData.get("layout");
-        if (layoutObj instanceof Map) {
-            Map<String, Object> rawLayout = (Map<String, Object>) layoutObj;
-            for (Map.Entry<String, Object> entry : rawLayout.entrySet()) {
-                if (entry.getValue() instanceof Map) {
-                    Map<String, Object> posRaw = (Map<String, Object>) entry.getValue();
-                    Map<String, Double> pos = new LinkedHashMap<>();
-                    pos.put("x", toDouble(posRaw.get("x")));
-                    pos.put("y", toDouble(posRaw.get("y")));
-                    layoutMap.put(entry.getKey(), pos);
-                }
-            }
-        }
-
-        // Flatten tree into all individual step models
-        List<StepModel> allSteps = StepModel.flattenTree(treeSteps);
-
-        // Apply layout positions or auto-layout
-        boolean hasLayout = !layoutMap.isEmpty();
-        double autoX = 100;
-        double autoY = 80;
-
-        Map<StepModel, NodeBox> modelToBox = new LinkedHashMap<>();
-
-        for (StepModel step : allSteps) {
-            if (hasLayout && layoutMap.containsKey(step.getId())) {
-                Map<String, Double> pos = layoutMap.get(step.getId());
-                step.setNodeX(pos.get("x"));
-                step.setNodeY(pos.get("y"));
-            } else {
-                step.setNodeX(autoX);
-                step.setNodeY(autoY);
-                autoY += 120;
-            }
-
-            NodeBox box = addNode(step);
-            modelToBox.put(step, box);
-        }
-
-        // Recreate connections from tree structure
-        recreateConnections(treeSteps, modelToBox);
-
-        // If no layout was saved, do an auto-layout pass
-        if (!hasLayout) {
-            autoLayout(treeSteps, modelToBox, 100, 80, 0);
-        }
+    public void loadFromJson(Map<String, Object> simulationData) {
+        GraphDeserializer.loadFromJson(simulationData, this);
     }
 
-    private void autoLayout(List<StepModel> steps, Map<StepModel, NodeBox> modelToBox,
-                            double startX, double startY, int depth) {
-        double x = startX + depth * 280;
-        double y = startY;
-
-        for (StepModel step : steps) {
-            NodeBox box = modelToBox.get(step);
-            if (box != null) {
-                box.setLayoutX(x);
-                box.setLayoutY(y);
-                step.setNodeX(x);
-                step.setNodeY(y);
-                y += 140;
-            }
-
-            // Layout children to the right
-            if (!step.getChildren().isEmpty()) {
-                autoLayout(step.getChildren(), modelToBox, startX, y - 140 + 20, depth + 1);
-                y += step.getChildren().size() * 140;
-            }
-            if (!step.getElseChildren().isEmpty()) {
-                autoLayout(step.getElseChildren(), modelToBox, startX, y, depth + 1);
-                y += step.getElseChildren().size() * 140;
-            }
-        }
-    }
-
-    private void recreateConnections(List<StepModel> steps, Map<StepModel, NodeBox> modelToBox) {
-        for (int i = 0; i < steps.size(); i++) {
-            StepModel step = steps.get(i);
-            NodeBox box = modelToBox.get(step);
-            if (box == null) continue;
-
-            // EXEC_OUT -> next sibling's EXEC_IN
-            if (i + 1 < steps.size()) {
-                NodeBox nextBox = modelToBox.get(steps.get(i + 1));
-                if (nextBox != null && box.getExecOut() != null) {
-                    deferConnection(box.getExecOut(), nextBox.getExecIn());
-                }
-            }
-
-            // Container children connections
-            if (!step.getChildren().isEmpty()) {
-                NodeBox firstChild = modelToBox.get(step.getChildren().get(0));
-                if (firstChild != null) {
-                    if (box.getLoopBodyPort() != null) {
-                        deferConnection(box.getLoopBodyPort(), firstChild.getExecIn());
-                    } else if (box.getThenPort() != null) {
-                        deferConnection(box.getThenPort(), firstChild.getExecIn());
-                    }
-                }
-                // Connect children in sequence
-                recreateConnections(step.getChildren(), modelToBox);
-            }
-
-            if (!step.getElseChildren().isEmpty()) {
-                NodeBox firstElse = modelToBox.get(step.getElseChildren().get(0));
-                if (firstElse != null && box.getElsePort() != null) {
-                    deferConnection(box.getElsePort(), firstElse.getExecIn());
-                }
-                recreateConnections(step.getElseChildren(), modelToBox);
-            }
-        }
-    }
-
-    private void deferConnection(NodePort source, NodePort target) {
-        javafx.application.Platform.runLater(() -> createConnection(source, target));
-    }
-
-    private double toDouble(Object obj) {
-        if (obj instanceof Number) return ((Number) obj).doubleValue();
-        return 0;
-    }
-
-    /**
-     * Reorganizes all nodes into a clean layout based on their connections.
-     * Roots are placed top-left, exec chains flow downward, children branch right.
-     */
     public void cleanupLayout() {
-        if (nodeBoxes.isEmpty()) return;
-
-        // Find root nodes (EXEC_IN has no incoming connection)
-        List<NodeBox> roots = new ArrayList<>();
-        Set<NodeBox> allConnected = new HashSet<>();
-
-        for (NodeBox box : nodeBoxes) {
-            if (!box.getExecIn().isConnected()) {
-                roots.add(box);
-            }
-        }
-
-        // Sort roots by current Y so relative order is preserved
-        roots.sort(Comparator.comparingDouble(NodeBox::getLayoutY));
-
-        double startX = 80;
-        double startY = 60;
-        double[] cursor = {startX, startY};
-
-        Set<NodeBox> placed = new HashSet<>();
-
-        for (NodeBox root : roots) {
-            if (!placed.contains(root)) {
-                layoutChain(root, cursor[0], cursor, placed, 0);
-                cursor[1] += 40; // gap between root chains
-            }
-        }
-
-        // Place any unconnected/orphan nodes at the bottom
-        for (NodeBox box : nodeBoxes) {
-            if (!placed.contains(box)) {
-                box.setLayoutX(cursor[0]);
-                box.setLayoutY(cursor[1]);
-                box.getModel().setNodeX(cursor[0]);
-                box.getModel().setNodeY(cursor[1]);
-                placed.add(box);
-                cursor[1] += estimateHeight(box) + 32;
-            }
-        }
-
-        if (onChange != null) onChange.run();
+        GraphLayoutEngine.cleanupLayout(nodeBoxes, connections, onChange);
     }
 
-    private static final double H_GAP = 300; // horizontal gap for branches
-    private static final double V_GAP = 32;  // vertical gap between nodes
-
-    private void layoutChain(NodeBox current, double x, double[] cursor,
-                             Set<NodeBox> placed, int depth) {
-        if (current == null || placed.contains(current)) return;
-        placed.add(current);
-
-        double nodeX = x;
-        double nodeY = cursor[1];
-
-        current.setLayoutX(nodeX);
-        current.setLayoutY(nodeY);
-        current.getModel().setNodeX(nodeX);
-        current.getModel().setNodeY(nodeY);
-
-        cursor[1] += estimateHeight(current) + V_GAP;
-
-        // Layout branch children to the right (Loop Body, Then, Else)
-        if (current.getLoopBodyPort() != null && current.getLoopBodyPort().isConnected()) {
-            NodeBox child = findConnectedInputBox(current.getLoopBodyPort());
-            if (child != null && !placed.contains(child)) {
-                double branchX = x + H_GAP;
-                double[] branchCursor = {branchX, nodeY};
-                layoutChain(child, branchX, branchCursor, placed, depth + 1);
-                cursor[1] = Math.max(cursor[1], branchCursor[1]);
-            }
-        }
-        if (current.getThenPort() != null && current.getThenPort().isConnected()) {
-            NodeBox child = findConnectedInputBox(current.getThenPort());
-            if (child != null && !placed.contains(child)) {
-                double branchX = x + H_GAP;
-                double[] branchCursor = {branchX, nodeY};
-                layoutChain(child, branchX, branchCursor, placed, depth + 1);
-                cursor[1] = Math.max(cursor[1], branchCursor[1]);
-            }
-        }
-        if (current.getElsePort() != null && current.getElsePort().isConnected()) {
-            NodeBox child = findConnectedInputBox(current.getElsePort());
-            if (child != null && !placed.contains(child)) {
-                double branchX = x + H_GAP;
-                double[] branchCursor = {branchX, cursor[1]};
-                layoutChain(child, branchX, branchCursor, placed, depth + 1);
-                cursor[1] = Math.max(cursor[1], branchCursor[1]);
-            }
-        }
-
-        // Follow EXEC_OUT to next sibling
-        if (current.getExecOut() != null && current.getExecOut().isConnected()) {
-            NodeBox next = findConnectedInputBox(current.getExecOut());
-            layoutChain(next, x, cursor, placed, depth);
-        }
+    public List<NodeBox> getNodeBoxes() {
+        return nodeBoxes;
     }
-
-    private double estimateHeight(NodeBox box) {
-        // Use the actual rendered height if available, otherwise a default
-        double h = box.prefHeight(-1);
-        return h > 0 ? h : 120;
-    }
-
-    public List<NodeBox> getNodeBoxes() { return nodeBoxes; }
 }

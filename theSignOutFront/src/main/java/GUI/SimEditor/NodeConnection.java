@@ -6,16 +6,13 @@ import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.shape.CubicCurve;
 
-/**
- * A bezier curve connecting an output port to an input port.
- * Automatically updates its endpoints when ports move.
- */
 public class NodeConnection extends CubicCurve {
 
     private static final double TANGENT_OFFSET = 80;
+    private static final double STROKE_WIDTH = 2.5;
 
-    private final NodePort source; // output
-    private final NodePort target; // input
+    private final NodePort source;
+    private final NodePort target;
     private final ChangeListener<Bounds> boundsListener;
 
     public NodeConnection(NodePort source, NodePort target, Group coordinateSpace) {
@@ -24,81 +21,88 @@ public class NodeConnection extends CubicCurve {
 
         getStyleClass().add("node-connection");
         setFill(null);
-        setStrokeWidth(2.5);
+        setStrokeWidth(STROKE_WIDTH);
         setMouseTransparent(false);
 
-        // Update curve when bounds change
-        boundsListener = (obs, oldVal, newVal) -> updateCurve(coordinateSpace);
+        boundsListener = (observable, oldBounds, newBounds) -> updateCurve(coordinateSpace);
 
         source.boundsInParentProperty().addListener(boundsListener);
         target.boundsInParentProperty().addListener(boundsListener);
 
-        // Also listen for node (ancestor) layout changes
         if (source.getParent() != null && source.getParent().getParent() != null) {
-            source.getParent().getParent().layoutXProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
-            source.getParent().getParent().layoutYProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
-            // NodeBox is grandparent of port circle in the hierarchy:
-            // NodeBox -> HBox (outputRow) -> NodePort
-            javafx.scene.Node nodeBox = findNodeBox(source);
-            if (nodeBox != null) {
-                nodeBox.layoutXProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
-                nodeBox.layoutYProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
-                nodeBox.boundsInParentProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
+            source.getParent().getParent().layoutXProperty().addListener(
+                (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
+            source.getParent().getParent().layoutYProperty().addListener(
+                (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
+            javafx.scene.Node sourceNodeBox = findNodeBox(source);
+            if (sourceNodeBox != null) {
+                sourceNodeBox.layoutXProperty().addListener(
+                    (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
+                sourceNodeBox.layoutYProperty().addListener(
+                    (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
+                sourceNodeBox.boundsInParentProperty().addListener(
+                    (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
             }
         }
         if (target.getParent() != null && target.getParent().getParent() != null) {
-            javafx.scene.Node nodeBox = findNodeBox(target);
-            if (nodeBox != null) {
-                nodeBox.layoutXProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
-                nodeBox.layoutYProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
-                nodeBox.boundsInParentProperty().addListener((o, a, b) -> updateCurve(coordinateSpace));
+            javafx.scene.Node targetNodeBox = findNodeBox(target);
+            if (targetNodeBox != null) {
+                targetNodeBox.layoutXProperty().addListener(
+                    (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
+                targetNodeBox.layoutYProperty().addListener(
+                    (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
+                targetNodeBox.boundsInParentProperty().addListener(
+                    (observable, oldValue, newValue) -> updateCurve(coordinateSpace));
             }
         }
 
-        // Initial update deferred to after layout
         javafx.application.Platform.runLater(() -> updateCurve(coordinateSpace));
     }
 
-    private javafx.scene.Node findNodeBox(javafx.scene.Node node) {
-        javafx.scene.Node current = node;
-        while (current != null) {
-            if (current instanceof NodeBox) return current;
-            current = current.getParent();
+    private javafx.scene.Node findNodeBox(javafx.scene.Node startNode) {
+        javafx.scene.Node currentNode = startNode;
+        while (currentNode != null) {
+            if (currentNode instanceof NodeBox) {
+                return currentNode;
+            }
+            currentNode = currentNode.getParent();
         }
         return null;
     }
 
     private void updateCurve(Group coordinateSpace) {
         try {
-            Point2D srcScene = source.getCenterInScene();
-            Point2D tgtScene = target.getCenterInScene();
+            Point2D sourceScenePosition = source.getCenterInScene();
+            Point2D targetScenePosition = target.getCenterInScene();
 
-            Point2D srcLocal = coordinateSpace.sceneToLocal(srcScene);
-            Point2D tgtLocal = coordinateSpace.sceneToLocal(tgtScene);
+            Point2D sourceLocalPosition = coordinateSpace.sceneToLocal(sourceScenePosition);
+            Point2D targetLocalPosition = coordinateSpace.sceneToLocal(targetScenePosition);
 
-            if (srcLocal == null || tgtLocal == null) return;
+            if (sourceLocalPosition == null || targetLocalPosition == null) {
+                return;
+            }
 
-            setStartX(srcLocal.getX());
-            setStartY(srcLocal.getY());
-            setEndX(tgtLocal.getX());
-            setEndY(tgtLocal.getY());
+            setStartX(sourceLocalPosition.getX());
+            setStartY(sourceLocalPosition.getY());
+            setEndX(targetLocalPosition.getX());
+            setEndY(targetLocalPosition.getY());
 
-            // Horizontal tangent for bezier
-            setControlX1(srcLocal.getX() + TANGENT_OFFSET);
-            setControlY1(srcLocal.getY());
-            setControlX2(tgtLocal.getX() - TANGENT_OFFSET);
-            setControlY2(tgtLocal.getY());
+            setControlX1(sourceLocalPosition.getX() + TANGENT_OFFSET);
+            setControlY1(sourceLocalPosition.getY());
+            setControlX2(targetLocalPosition.getX() - TANGENT_OFFSET);
+            setControlY2(targetLocalPosition.getY());
         } catch (Exception ignored) {
-            // Port may not be in scene yet
         }
     }
 
-    public NodePort getSource() { return source; }
-    public NodePort getTarget() { return target; }
+    public NodePort getSource() {
+        return source;
+    }
 
-    /**
-     * Disconnects this connection from both ports.
-     */
+    public NodePort getTarget() {
+        return target;
+    }
+
     public void disconnect() {
         if (source.getConnection() == this) {
             source.setConnection(null);

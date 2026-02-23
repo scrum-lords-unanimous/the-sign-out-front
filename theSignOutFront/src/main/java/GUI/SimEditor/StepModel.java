@@ -17,87 +17,133 @@ public class StepModel {
         this.type = type;
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public double getNodeX() { return nodeX; }
-    public void setNodeX(double nodeX) { this.nodeX = nodeX; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public double getNodeY() { return nodeY; }
-    public void setNodeY(double nodeY) { this.nodeY = nodeY; }
+    public double getNodeX() {
+        return nodeX;
+    }
 
-    public String getType() { return type; }
-    public void setType(String type) { this.type = type; }
+    public void setNodeX(double nodeX) {
+        this.nodeX = nodeX;
+    }
 
-    public Map<String, Object> getProperties() { return properties; }
-    public Object getProperty(String key) { return properties.get(key); }
-    public void setProperty(String key, Object value) { properties.put(key, value); }
+    public double getNodeY() {
+        return nodeY;
+    }
 
-    public List<StepModel> getChildren() { return children; }
-    public List<StepModel> getElseChildren() { return elseChildren; }
+    public void setNodeY(double nodeY) {
+        this.nodeY = nodeY;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public Map<String, Object> getProperties() {
+        return properties;
+    }
+
+    public Object getProperty(String key) {
+        return properties.get(key);
+    }
+
+    public void setProperty(String key, Object value) {
+        properties.put(key, value);
+    }
+
+    public List<StepModel> getChildren() {
+        return children;
+    }
+
+    public List<StepModel> getElseChildren() {
+        return elseChildren;
+    }
 
     public boolean isContainer() {
-        return type.equals("for") || type.equals("for-each") || type.equals("if");
+        return type.equals("for")
+            || type.equals("for-each")
+            || type.equals("if")
+            || type.equals("while");
     }
 
     @SuppressWarnings("unchecked")
-    public static StepModel fromJson(Map<String, Object> json) {
-        String type = (String) json.get("type");
-        StepModel model = new StepModel(type);
+    public static StepModel fromJson(Map<String, Object> jsonMap) {
+        String stepType = (String) jsonMap.get("type");
+        StepModel model = new StepModel(stepType);
 
-        switch (type) {
+        switch (stepType) {
             case "for":
-                model.setProperty("var", json.getOrDefault("var", ""));
-                model.setProperty("from", json.getOrDefault("from", 0));
-                model.setProperty("to", json.getOrDefault("to", 0));
-                model.setProperty("step", json.getOrDefault("step", 1));
-                List<Map<String, Object>> forSteps = (List<Map<String, Object>>) json.get("steps");
-                if (forSteps != null) {
-                    for (Map<String, Object> s : forSteps) {
-                        model.children.add(fromJson(s));
+                model.setProperty("var", jsonMap.getOrDefault("var", ""));
+                model.setProperty("from", jsonMap.getOrDefault("from", 0));
+                model.setProperty("to", jsonMap.getOrDefault("to", 0));
+                model.setProperty("step", jsonMap.getOrDefault("step", 1));
+                List<Map<String, Object>> forBodySteps = (List<Map<String, Object>>) jsonMap.get("steps");
+                if (forBodySteps != null) {
+                    for (Map<String, Object> childStep : forBodySteps) {
+                        model.children.add(fromJson(childStep));
                     }
                 }
                 break;
 
             case "for-each":
-                model.setProperty("collection", json.getOrDefault("collection", ""));
-                model.setProperty("as", json.getOrDefault("as", ""));
-                List<Map<String, Object>> feSteps = (List<Map<String, Object>>) json.get("steps");
-                if (feSteps != null) {
-                    for (Map<String, Object> s : feSteps) {
-                        model.children.add(fromJson(s));
+                model.setProperty("collection", jsonMap.getOrDefault("collection", ""));
+                model.setProperty("as", jsonMap.getOrDefault("as", ""));
+                List<Map<String, Object>> forEachBodySteps = (List<Map<String, Object>>) jsonMap.get("steps");
+                if (forEachBodySteps != null) {
+                    for (Map<String, Object> childStep : forEachBodySteps) {
+                        model.children.add(fromJson(childStep));
+                    }
+                }
+                break;
+
+            case "while":
+                model.setProperty("condition", jsonMap.getOrDefault("condition", new LinkedHashMap<>()));
+                List<Map<String, Object>> whileBodySteps = (List<Map<String, Object>>) jsonMap.get("steps");
+                if (whileBodySteps != null) {
+                    for (Map<String, Object> childStep : whileBodySteps) {
+                        model.children.add(fromJson(childStep));
                     }
                 }
                 break;
 
             case "if":
-                model.setProperty("condition", json.getOrDefault("condition", new LinkedHashMap<>()));
-                List<Map<String, Object>> thenSteps = (List<Map<String, Object>>) json.get("then");
-                if (thenSteps != null) {
-                    for (Map<String, Object> s : thenSteps) {
-                        model.children.add(fromJson(s));
+                model.setProperty("condition", jsonMap.getOrDefault("condition", new LinkedHashMap<>()));
+                List<Map<String, Object>> thenBranchSteps = (List<Map<String, Object>>) jsonMap.get("then");
+                if (thenBranchSteps != null) {
+                    for (Map<String, Object> childStep : thenBranchSteps) {
+                        model.children.add(fromJson(childStep));
                     }
                 }
-                List<Map<String, Object>> elseSteps = (List<Map<String, Object>>) json.get("else");
-                if (elseSteps != null) {
-                    for (Map<String, Object> s : elseSteps) {
-                        model.elseChildren.add(fromJson(s));
+                List<Map<String, Object>> elseBranchSteps = (List<Map<String, Object>>) jsonMap.get("else");
+                if (elseBranchSteps != null) {
+                    for (Map<String, Object> childStep : elseBranchSteps) {
+                        model.elseChildren.add(fromJson(childStep));
                     }
                 }
                 break;
 
             case "set":
-                model.setProperty("target", json.getOrDefault("target", ""));
-                model.setProperty("value", json.getOrDefault("value", ""));
+                model.setProperty("target", jsonMap.getOrDefault("target", ""));
+                model.setProperty("value", jsonMap.getOrDefault("value", ""));
                 break;
 
             case "print":
-                model.setProperty("value", json.getOrDefault("value", ""));
+                model.setProperty("value", jsonMap.getOrDefault("value", ""));
                 break;
 
             case "spawn":
-                model.setProperty("count", json.getOrDefault("count", ""));
-                model.setProperty("as", json.getOrDefault("as", ""));
+                model.setProperty("count", jsonMap.getOrDefault("count", ""));
+                model.setProperty("as", jsonMap.getOrDefault("as", ""));
                 break;
 
             case "precompute-driveway":
@@ -110,60 +156,69 @@ public class StepModel {
     }
 
     public Map<String, Object> toJson() {
-        Map<String, Object> json = new LinkedHashMap<>();
-        json.put("type", type);
+        Map<String, Object> jsonMap = new LinkedHashMap<>();
+        jsonMap.put("type", type);
 
         switch (type) {
             case "for":
-                json.put("var", properties.getOrDefault("var", ""));
-                json.put("from", properties.getOrDefault("from", 0));
-                json.put("to", properties.getOrDefault("to", 0));
-                json.put("step", properties.getOrDefault("step", 1));
-                List<Map<String, Object>> forSteps = new ArrayList<>();
+                jsonMap.put("var", properties.getOrDefault("var", ""));
+                jsonMap.put("from", properties.getOrDefault("from", 0));
+                jsonMap.put("to", properties.getOrDefault("to", 0));
+                jsonMap.put("step", properties.getOrDefault("step", 1));
+                List<Map<String, Object>> forBodySteps = new ArrayList<>();
                 for (StepModel child : children) {
-                    forSteps.add(child.toJson());
+                    forBodySteps.add(child.toJson());
                 }
-                json.put("steps", forSteps);
+                jsonMap.put("steps", forBodySteps);
                 break;
 
             case "for-each":
-                json.put("collection", properties.getOrDefault("collection", ""));
-                json.put("as", properties.getOrDefault("as", ""));
-                List<Map<String, Object>> feSteps = new ArrayList<>();
+                jsonMap.put("collection", properties.getOrDefault("collection", ""));
+                jsonMap.put("as", properties.getOrDefault("as", ""));
+                List<Map<String, Object>> forEachBodySteps = new ArrayList<>();
                 for (StepModel child : children) {
-                    feSteps.add(child.toJson());
+                    forEachBodySteps.add(child.toJson());
                 }
-                json.put("steps", feSteps);
+                jsonMap.put("steps", forEachBodySteps);
+                break;
+
+            case "while":
+                jsonMap.put("condition", properties.getOrDefault("condition", new LinkedHashMap<>()));
+                List<Map<String, Object>> whileBodySteps = new ArrayList<>();
+                for (StepModel child : children) {
+                    whileBodySteps.add(child.toJson());
+                }
+                jsonMap.put("steps", whileBodySteps);
                 break;
 
             case "if":
-                json.put("condition", properties.getOrDefault("condition", new LinkedHashMap<>()));
-                List<Map<String, Object>> thenSteps = new ArrayList<>();
+                jsonMap.put("condition", properties.getOrDefault("condition", new LinkedHashMap<>()));
+                List<Map<String, Object>> thenBranchSteps = new ArrayList<>();
                 for (StepModel child : children) {
-                    thenSteps.add(child.toJson());
+                    thenBranchSteps.add(child.toJson());
                 }
-                json.put("then", thenSteps);
+                jsonMap.put("then", thenBranchSteps);
                 if (!elseChildren.isEmpty()) {
-                    List<Map<String, Object>> elseSteps = new ArrayList<>();
+                    List<Map<String, Object>> elseBranchSteps = new ArrayList<>();
                     for (StepModel child : elseChildren) {
-                        elseSteps.add(child.toJson());
+                        elseBranchSteps.add(child.toJson());
                     }
-                    json.put("else", elseSteps);
+                    jsonMap.put("else", elseBranchSteps);
                 }
                 break;
 
             case "set":
-                json.put("target", properties.getOrDefault("target", ""));
-                json.put("value", properties.getOrDefault("value", ""));
+                jsonMap.put("target", properties.getOrDefault("target", ""));
+                jsonMap.put("value", properties.getOrDefault("value", ""));
                 break;
 
             case "print":
-                json.put("value", properties.getOrDefault("value", ""));
+                jsonMap.put("value", properties.getOrDefault("value", ""));
                 break;
 
             case "spawn":
-                json.put("count", properties.getOrDefault("count", ""));
-                json.put("as", properties.getOrDefault("as", ""));
+                jsonMap.put("count", properties.getOrDefault("count", ""));
+                jsonMap.put("as", properties.getOrDefault("as", ""));
                 break;
 
             case "precompute-driveway":
@@ -172,52 +227,47 @@ public class StepModel {
                 break;
         }
 
-        return json;
+        return jsonMap;
     }
 
     @SuppressWarnings("unchecked")
-    public static List<StepModel> fromJsonSteps(Map<String, Object> simJson) {
+    public static List<StepModel> fromJsonSteps(Map<String, Object> simulationJson) {
         List<StepModel> models = new ArrayList<>();
-        List<Map<String, Object>> steps = (List<Map<String, Object>>) simJson.get("steps");
+        List<Map<String, Object>> steps = (List<Map<String, Object>>) simulationJson.get("steps");
         if (steps != null) {
-            for (Map<String, Object> s : steps) {
-                models.add(fromJson(s));
+            for (Map<String, Object> stepJson : steps) {
+                models.add(fromJson(stepJson));
             }
         }
         return models;
     }
 
-    public static Map<String, Object> toSimJson(String name, List<StepModel> steps) {
-        Map<String, Object> sim = new LinkedHashMap<>();
-        sim.put("name", name);
-        List<Map<String, Object>> jsonSteps = new ArrayList<>();
+    public static Map<String, Object> toSimJson(String simulationName, List<StepModel> steps) {
+        Map<String, Object> simulationMap = new LinkedHashMap<>();
+        simulationMap.put("name", simulationName);
+        List<Map<String, Object>> serializedSteps = new ArrayList<>();
         for (StepModel step : steps) {
-            jsonSteps.add(step.toJson());
+            serializedSteps.add(step.toJson());
         }
-        sim.put("steps", jsonSteps);
-        return sim;
+        simulationMap.put("steps", serializedSteps);
+        return simulationMap;
     }
 
-    /**
-     * Recursively flattens a tree of StepModels into a single list.
-     * Each model keeps its children/elseChildren intact for tree-rebuild,
-     * but all nodes appear at the top level of the returned list.
-     */
     public static List<StepModel> flattenTree(List<StepModel> roots) {
-        List<StepModel> flat = new ArrayList<>();
+        List<StepModel> flatList = new ArrayList<>();
         for (StepModel root : roots) {
-            flattenRecursive(root, flat);
+            flattenRecursive(root, flatList);
         }
-        return flat;
+        return flatList;
     }
 
-    private static void flattenRecursive(StepModel model, List<StepModel> flat) {
-        flat.add(model);
+    private static void flattenRecursive(StepModel model, List<StepModel> flatList) {
+        flatList.add(model);
         for (StepModel child : model.getChildren()) {
-            flattenRecursive(child, flat);
+            flattenRecursive(child, flatList);
         }
-        for (StepModel child : model.getElseChildren()) {
-            flattenRecursive(child, flat);
+        for (StepModel elseChild : model.getElseChildren()) {
+            flattenRecursive(elseChild, flatList);
         }
     }
 }
