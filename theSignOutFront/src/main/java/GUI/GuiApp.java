@@ -18,9 +18,17 @@ import GUI.Assets.AssetsPage;
 import GUI.Files.FilesPage;
 import GUI.Run.RunPage;
 import GUI.SimEditor.SimulationsPage;
+import FluentUIJavaFxKit.CustomTitleBar;
+import FluentUIJavaFxKit.HotReloader;
+import FluentUIJavaFxKit.NativeWindowHelper;
+import FluentUIJavaFxKit.Sidebar;
+import FluentUIJavaFxKit.SidebarItem;
+import FluentUIJavaFxKit.ThemeManager;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
+import java.util.Map;
 
 public class GuiApp extends Application {
 
@@ -40,6 +48,12 @@ public class GuiApp extends Application {
     private final Deque<String> pageHistory = new ArrayDeque<>();
     private String currentPage;
     private boolean suppressHistory;
+    private final HotReloader hotReloader = new HotReloader(Map.of(
+            "Run", "GUI.Run.RunPage",
+            "Simulations", "GUI.SimEditor.SimulationsPage",
+            "Assets", "GUI.Assets.AssetsPage",
+            "View and Modify Files", "GUI.Files.FilesPage"
+    ));
 
     @Override
     public void start(Stage primaryStage) {
@@ -52,10 +66,16 @@ public class GuiApp extends Application {
 
         rootPane = new BorderPane();
 
-        titleBar = new CustomTitleBar(primaryStage, this::goBack);
+        Image logo = new Image(getClass().getResourceAsStream("/Logo/signoutfronlogo.png"));
+        titleBar = new CustomTitleBar(primaryStage, this::goBack, "The Sign Out Front", logo);
         rootPane.setTop(titleBar);
 
-        sidebar = new Sidebar(this::onPageSelected);
+        sidebar = new Sidebar(List.of(
+                new SidebarItem("\uE768", "Run"),
+                new SidebarItem("\uE943", "Simulations"),
+                new SidebarItem("\uF12B", "Assets"),
+                new SidebarItem("\uE8A5", "View and Modify Files", true)
+        ), this::onPageSelected);
 
         contentArea = new StackPane();
         contentArea.setAlignment(Pos.TOP_LEFT);
@@ -75,6 +95,7 @@ public class GuiApp extends Application {
         mainScene.setOnKeyPressed(keyEvent -> {
             if (themeManager != null && keyEvent.getCode() == KeyCode.F5) {
                 themeManager.reloadCss();
+                hotReloader.reload(currentPage, contentArea);
                 keyEvent.consume();
             }
         });

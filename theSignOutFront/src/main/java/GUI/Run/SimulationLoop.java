@@ -16,6 +16,7 @@ public class SimulationLoop extends AnimationTimer {
     private static final double FEET_PER_MILE = 5_280.0;
     private static final double SECONDS_PER_HOUR = 3_600.0;
     private static final int RANKINGS_UPDATE_INTERVAL = 30;
+    private static final double MAX_VISUAL_STEP_FRACTION = 0.05;
 
     private static final int COL_ARRIVAL_TIME = 0;
     private static final int COL_IS_ACTIVE = 1;
@@ -26,6 +27,8 @@ public class SimulationLoop extends AnimationTimer {
     private final double advancementRate;
     private final List<double[]> waypoints;
     private final List<MeshView> carMeshes;
+    private final double[] visualPositions;
+    private final double[] previousVisualPositions;
     private final PhongMaterial signMaterial;
     private final List<Image> slideImages;
     private final Image logoImage;
@@ -54,6 +57,10 @@ public class SimulationLoop extends AnimationTimer {
         this.advancementRate = advancementRate;
         this.waypoints = waypoints;
         this.carMeshes = carMeshes;
+        this.visualPositions = new double[students.length];
+        this.previousVisualPositions = new double[students.length];
+        java.util.Arrays.fill(this.visualPositions, -1);
+        java.util.Arrays.fill(this.previousVisualPositions, -1);
         this.signMaterial = signMaterial;
         this.slideImages = slideImages;
         this.logoImage = logoImage;
@@ -130,6 +137,8 @@ public class SimulationLoop extends AnimationTimer {
     }
 
     private void updateStudents(double deltaSeconds) {
+        double maxStep = driveway.totalLength * MAX_VISUAL_STEP_FRACTION;
+
         for (int i = 0; i < students.length; i++) {
             double arrivalTime = students[i][COL_ARRIVAL_TIME];
             boolean isActive = students[i][COL_IS_ACTIVE] == 1;
@@ -137,6 +146,8 @@ public class SimulationLoop extends AnimationTimer {
 
             if (!isActive && positionAlongDriveway == 0 && elapsedSimSeconds >= arrivalTime) {
                 isActive = true;
+                visualPositions[i] = 0;
+                previousVisualPositions[i] = 0;
                 recordSlideViewOnArrival();
             }
 
@@ -154,9 +165,29 @@ public class SimulationLoop extends AnimationTimer {
             students[i][COL_IS_ACTIVE] = isActive ? 1 : 0;
             students[i][COL_POSITION] = positionAlongDriveway;
 
-            MeshView carMesh = carMeshes.get(i);
+            previousVisualPositions[i] = visualPositions[i];
+            boolean showCar;
+
             if (isActive) {
-                positionCarOnDriveway(carMesh, positionAlongDriveway);
+                double gap = positionAlongDriveway - visualPositions[i];
+                if (gap > maxStep) {
+                    visualPositions[i] += maxStep;
+                } else {
+                    visualPositions[i] = positionAlongDriveway;
+                }
+                showCar = true;
+            } else if (positionAlongDriveway == -1
+                    && visualPositions[i] >= 0
+                    && visualPositions[i] < driveway.totalLength) {
+                visualPositions[i] = Math.min(visualPositions[i] + maxStep, driveway.totalLength);
+                showCar = visualPositions[i] < driveway.totalLength;
+            } else {
+                showCar = false;
+            }
+
+            MeshView carMesh = carMeshes.get(i);
+            if (showCar) {
+                positionCarOnDriveway(carMesh, visualPositions[i]);
                 carMesh.setVisible(true);
             } else {
                 carMesh.setVisible(false);
@@ -172,8 +203,8 @@ public class SimulationLoop extends AnimationTimer {
     }
 
     private void positionCarOnDriveway(MeshView carMesh, double position) {
-        double[] point = DrivewayMesh.interp(waypoints, position);
-        double[] direction = DrivewayMesh.dir(waypoints, position);
+        double[] point = DrivewayMesh.interpolatePosition(waypoints, position);
+        double[] direction = DrivewayMesh.directionAtDistance(waypoints, position);
 
         carMesh.setTranslateX(point[0]);
         carMesh.setTranslateY(point[1] - 1);
@@ -198,9 +229,11 @@ public class SimulationLoop extends AnimationTimer {
     }
 
     private void resetAllStudents() {
-        for (double[] student : students) {
-            student[COL_IS_ACTIVE] = 0;
-            student[COL_POSITION] = 0;
+        for (int i = 0; i < students.length; i++) {
+            students[i][COL_IS_ACTIVE] = 0;
+            students[i][COL_POSITION] = 0;
+            visualPositions[i] = -1;
+            previousVisualPositions[i] = -1;
         }
     }
 }

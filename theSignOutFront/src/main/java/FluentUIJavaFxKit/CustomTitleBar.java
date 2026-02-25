@@ -1,4 +1,4 @@
-package GUI;
+package FluentUIJavaFxKit;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -31,7 +31,7 @@ public class CustomTitleBar extends HBox {
 
     private final Button backButton;
 
-    public CustomTitleBar(Stage stage, Runnable onBackAction) {
+    public CustomTitleBar(Stage stage, Runnable onBackAction, String title, Image logo) {
         getStyleClass().add("custom-title-bar");
         setAlignment(Pos.CENTER_LEFT);
         setPrefHeight(TITLE_BAR_HEIGHT);
@@ -45,17 +45,11 @@ public class CustomTitleBar extends HBox {
                 onBackAction.run();
             }
         });
-        Sidebar.addFluentPressAnimation(backButton);
+        FluentAnimations.addPressAnimation(backButton);
         HBox.setMargin(backButton, new Insets(BACK_BUTTON_VERTICAL_MARGIN, 0, BACK_BUTTON_VERTICAL_MARGIN, BACK_BUTTON_LEFT_MARGIN));
         setBackVisible(false);
 
-        ImageView logoImage = new ImageView(new Image(getClass().getResourceAsStream("/Logo/signoutfronlogo.png")));
-        logoImage.setFitHeight(LOGO_HEIGHT);
-        logoImage.setPreserveRatio(true);
-        logoImage.setMouseTransparent(true);
-        HBox.setMargin(logoImage, new Insets(0, 0, 0, LOGO_LEFT_MARGIN));
-
-        Label titleLabel = new Label("The Sign Out Front");
+        Label titleLabel = new Label(title);
         titleLabel.getStyleClass().add("title-bar-text");
         titleLabel.setMouseTransparent(true);
         HBox.setMargin(titleLabel, new Insets(0, 0, 0, TITLE_LEFT_MARGIN));
@@ -81,7 +75,17 @@ public class CustomTitleBar extends HBox {
         closeButton.getStyleClass().add("close-button");
         closeButton.setOnAction(event -> stage.close());
 
-        getChildren().addAll(backButton, logoImage, titleLabel, spacer, minimizeButton, maximizeButton, closeButton);
+        if (logo != null) {
+            ImageView logoImage = new ImageView(logo);
+            logoImage.setFitHeight(LOGO_HEIGHT);
+            logoImage.setPreserveRatio(true);
+            logoImage.setMouseTransparent(true);
+            HBox.setMargin(logoImage, new Insets(0, 0, 0, LOGO_LEFT_MARGIN));
+            getChildren().addAll(backButton, logoImage, titleLabel, spacer, minimizeButton, maximizeButton, closeButton);
+        } else {
+            HBox.setMargin(titleLabel, new Insets(0, 0, 0, LOGO_LEFT_MARGIN));
+            getChildren().addAll(backButton, titleLabel, spacer, minimizeButton, maximizeButton, closeButton);
+        }
 
         stage.maximizedProperty().addListener((observable, previouslyMaximized, isMaximized) ->
                 maximizeButton.setText(isMaximized ? ICON_RESTORE : ICON_MAXIMIZE));

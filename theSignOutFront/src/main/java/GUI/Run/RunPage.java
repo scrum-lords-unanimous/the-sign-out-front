@@ -4,7 +4,7 @@ import CLI.UserInput.DoMath.MathIsDone;
 import Data.Driveway.Driveway;
 import Data.Slide.Slide;
 import GUI.Assets.SlideSetStore;
-import GUI.Components.EmptyState;
+import FluentUIJavaFxKit.EmptyState;
 import GUI.Files.DrivewayStore;
 import GUI.SimEditor.SimulationStore;
 import com.fasterxml.jackson.core.type.TypeReference;

@@ -42,7 +42,8 @@ public class SpeedControl extends HBox {
     private static final double SLIDER_PREFERRED_WIDTH = 200;
     private static final double SLIDER_MINIMUM_WIDTH = 100;
     private static final double THUMB_BORDER_DEFAULT = 6;
-    private static final double THUMB_BORDER_HOVER = 2;
+    private static final double THUMB_BORDER_HOVER = 4;
+    private static final double THUMB_BORDER_ACTIVE = 8;
     private static final double ANIMATION_DURATION_MS = 200;
     private static final int THUMB_RADIUS = 20;
     private static final int TRACK_RADIUS = 4;
@@ -187,6 +188,14 @@ public class SpeedControl extends HBox {
         speedSlider.setOnMouseExited(event -> {
             new Timeline(new KeyFrame(Duration.millis(ANIMATION_DURATION_MS),
                 new KeyValue(thumbBorderWidth, THUMB_BORDER_DEFAULT, decelerationCurve))).play();
+        });
+        speedSlider.setOnMousePressed(event -> {
+            new Timeline(new KeyFrame(Duration.millis(ANIMATION_DURATION_MS),
+                new KeyValue(thumbBorderWidth, THUMB_BORDER_ACTIVE, decelerationCurve))).play();
+        });
+        speedSlider.setOnMouseReleased(event -> {
+            new Timeline(new KeyFrame(Duration.millis(ANIMATION_DURATION_MS),
+                new KeyValue(thumbBorderWidth, THUMB_BORDER_HOVER, decelerationCurve))).play();
         });
 
         speedSlider.skinProperty().addListener((observable, oldSkin, newSkin) -> {

@@ -1,4 +1,4 @@
-package GUI.Components;
+package FluentUIJavaFxKit;
 
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;

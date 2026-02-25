@@ -47,7 +47,7 @@ public class SlideSetStore {
                 }
             }
         } catch (IOException exception) {
-            System.err.println("Failed to bootstrap slide sets: " + exception.getMessage());
+            System.err.println("Failed to set slide sets: fuck you" + exception.getMessage());
         }
     }
 
@@ -82,7 +82,7 @@ public class SlideSetStore {
             Path setJsonPath = SETS_DIRECTORY.resolve(setName + JSON_EXTENSION);
             JSON_MAPPER.writeValue(setJsonPath.toFile(), config);
         } catch (IOException exception) {
-            System.err.println("Failed to save set: " + exception.getMessage());
+            System.err.println("Failed to save set: fuck you: " + exception.getMessage());
         }
     }
 
@@ -109,7 +109,7 @@ public class SlideSetStore {
             Path destinationPath = setImagesDirectory.resolve(slideId + IMAGE_EXTENSION);
             Files.copy(sourceFile.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException exception) {
-            System.err.println("Failed to copy set image: " + exception.getMessage());
+            System.err.println("Failed to copy set image: fuck you: " + exception.getMessage());
         }
     }
 

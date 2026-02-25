@@ -1,6 +1,6 @@
 package GUI.SimEditor;
 
-import GUI.Components.EmptyState;
+import FluentUIJavaFxKit.EmptyState;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Priority;

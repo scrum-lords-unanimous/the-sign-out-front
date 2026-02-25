@@ -70,7 +70,7 @@ goto fail
 :execute
 @rem Setup the command line
 
-set CLASSPATH=%APP_HOME%\lib\theSignOutFront-0.1.jar;%APP_HOME%\lib\jackson-core-2.21.0.jar;%APP_HOME%\lib\jackson-databind-2.21.0.jar;%APP_HOME%\lib\javafx-controls-24-win.jar;%APP_HOME%\lib\jackson-annotations-2.21.jar;%APP_HOME%\lib\javafx-graphics-24-win.jar;%APP_HOME%\lib\javafx-base-24-win.jar
+set CLASSPATH=%APP_HOME%\lib\theSignOutFront-0.1.jar;%APP_HOME%\lib\jackson-core-2.21.0.jar;%APP_HOME%\lib\jackson-databind-2.21.0.jar;%APP_HOME%\lib\richtextfx-0.11.3.jar;%APP_HOME%\lib\javafx-controls-24-win.jar;%APP_HOME%\lib\jackson-annotations-2.21.jar;%APP_HOME%\lib\undofx-2.1.1.jar;%APP_HOME%\lib\flowless-0.7.3.jar;%APP_HOME%\lib\reactfx-2.0-M5.jar;%APP_HOME%\lib\wellbehavedfx-0.3.3.jar;%APP_HOME%\lib\javafx-graphics-24-win.jar;%APP_HOME%\lib\javafx-base-24-win.jar
 
 
 @rem Execute theSignOutFront

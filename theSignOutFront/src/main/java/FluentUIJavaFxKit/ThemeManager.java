@@ -1,4 +1,5 @@
-package GUI;
+//handles hot reloading for css and other call to change themes like light and dark mode. 
+package FluentUIJavaFxKit;
 
 import javafx.application.Application;
 import javafx.application.ColorScheme;

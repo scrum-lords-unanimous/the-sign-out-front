@@ -1,7 +1,7 @@
 package GUI.Assets;
 
 import Data.Slide.SlideConfig;
-import GUI.Components.EmptyState;
+import FluentUIJavaFxKit.EmptyState;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 

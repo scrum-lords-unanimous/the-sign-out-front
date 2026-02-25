@@ -1,3 +1,4 @@
+//Makes sign. This is using Phong lighting like the rest of the system. Might add ray tracing later idk. 
 package GUI.Run;
 
 import javafx.application.ColorScheme;

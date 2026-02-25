@@ -1,3 +1,4 @@
+//supposed to be a day complete modal with stats but never got around to finishing it. 
 package GUI.Run;
 
 import javafx.geometry.Insets;
